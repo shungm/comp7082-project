@@ -9,9 +9,15 @@ import { BLUE, DARK, GRAY } from '../constants/theme';
 interface HomeScreenProps {
   expenses: Expense[];
   onNavigate: (s: Screen) => void;
+  budget: number;
+  onSaveBudget: (value: number) => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ expenses, onNavigate }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ 
+  expenses,
+  onNavigate,
+  budget,
+  onSaveBudget }) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Personal');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -60,7 +66,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ expenses, onNavigate }) 
 
       {mode === 'Personal' ? (
         <>
-          <BudgetCard total={total} />
+          <BudgetCard 
+            total={total} 
+            budget={budget}
+            onSaveBudget={onSaveBudget}
+          />
 
           <View style={[styles.between, { marginTop: 28 }]}>
             <Text style={styles.sectionTitle}>Recent Expenses</Text>
