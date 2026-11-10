@@ -17,17 +17,58 @@ export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBa
   const [category, setCategory] = useState<Category>('Food');
 
   const submit = () => {
-    const value = Number(amount.trim());
+    const trimmedAmount = amount.trim();
+    const trimmedTitle = title.trim();
 
+    // check if amount is empty
+    if (!trimmedAmount) {
+      Alert.alert(
+        'Missing Amount',
+        'Please enter an amount for the expense.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+
+    // Allow positive decimal values with up to 2 decimal places
+    const amountPattern = /^\d+(\.\d{1,2})?$/;
+
+    if (!amountPattern.test(trimmedAmount)) {
+      Alert.alert(
+        'Invalid Amount',
+        'Please enter a valid amount with up to 2 decimal places.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+
+    const value = Number(trimmedAmount);
+
+    // Check if the amount is greater than 0
     if (!Number.isFinite(value) || value <= 0) {
-      Alert.alert('Invalid Amount', 'Enter a valid amount.');
+      Alert.alert(
+        'Invalid Amount',
+        'Amount must be greater than $0.00.',
+        [{ text: 'OK' }],
+      );
       return;
     }
-    if (!title.trim()) {
-      Alert.alert('Missing Description', 'Enter a description.');
-      return;
+
+    // Check if the description is empty
+    if (!trimmedTitle) {
+     Alert.alert(
+      'Missing Description',
+      'Please enter a description for the expense.',
+      [{ text: 'OK' }],
+     );
+     return;
     }
-    onSave({ title: title.trim(), amount: value, category });
+    
+    onSave({
+      title: trimmedTitle,
+      amount: value,
+      category
+    });
   };
 
   return (
