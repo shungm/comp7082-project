@@ -93,9 +93,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             expenses.slice(0, 5).map((e) => <ExpenseRow key={e.id} expense={e} />)
           )}
 
+        {receiptUri && (
+          <View style={[styles.card, { marginTop: 16 }]}>
+            <Text style={styles.sectionTitle}>Receipt Captured</Text>
+            <Image
+              source={{ uri: receiptUri }}
+              style={{ width: '100%', height: 220, borderRadius: 12, marginTop: 12 }}
+              resizeMode="cover"
+            />
+            <View style={[styles.actionRow, { marginTop: 12 }]}>
+              <Pressable style={styles.scanButton} onPress={clearReceipt}>
+                <Text style={styles.scanText}>Remove</Text>
+              </Pressable>
+              <Pressable style={styles.addButton} onPress={() => onNavigate('add')}>
+                <Text style={styles.addText}>Add Expense</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
           <View style={styles.actionRow}>
             <Pressable style={styles.scanButton} onPress={scanReceipt}>
-              <Feather name="camera" size={17} color={BLUE} />
+              <Feather name="camera" size={17} color="#FFFFFF" />
               <Text style={styles.scanText}>Scan Receipt</Text>
             </Pressable>
 
@@ -198,11 +217,11 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F0FF',
+    backgroundColor: BLUE,
     paddingVertical: 16,
     borderRadius: 12,
   },
-  scanText: { color: BLUE, fontSize: 13, fontWeight: '700' },
+  scanText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   addButton: {
     flex: 1,
     flexDirection: 'row',
