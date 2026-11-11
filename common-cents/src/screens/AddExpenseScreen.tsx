@@ -1,198 +1,163 @@
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, ScrollView,
-  StyleSheet, KeyboardAvoidingView, Platform, Alert,
-} from 'react-native';
-import { Expense, Category } from '../types/expense';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { Expense, Category, Group } from '../types/expense';
 import { BLUE, DARK, GRAY } from '../constants/theme';
 
 interface AddExpenseScreenProps {
-  onSave: (e: Omit<Expense, 'id' | 'date'>) => void;
+  onSave: (data: Omit<Expense, 'id' | 'date' | 'paid_by'>) => void;
   onBack: () => void;
+  userGroups: Group[];
 }
 
-export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBack }) => {
-  const [amount, setAmount] = useState('');
+export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBack, userGroups }) => {
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<Category>('Food');
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState<Category>('Other');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
-  const submit = () => {
-    const trimmedAmount = amount.trim();
-    const trimmedTitle = title.trim();
+  const categories: { label: Category; icon: React.ComponentProps<typeof Feather>['name'] }[] = [
+    { label: 'Food', icon: 'coffee' },
+    { label: 'Groceries', icon: 'shopping-cart' },
+    { label: 'Transport', icon: 'truck' },
+    { label: 'Other', icon: 'credit-card' },
+  ];
 
-    // check if amount is empty
-    if (!trimmedAmount) {
-      Alert.alert(
-        'Missing Amount',
-        'Please enter an amount for the expense.',
-        [{ text: 'OK' }],
-      );
+  const handleSave = () => {
+    if (!title.trim() || !amount.trim() || isNaN(Number(amount))) {
+      Alert.alert('Invalid Input', 'Please enter a valid title and numeric amount.');
       return;
     }
-
-    // Allow positive decimal values with up to 2 decimal places
-    const amountPattern = /^\d+(\.\d{1,2})?$/;
-
-    if (!amountPattern.test(trimmedAmount)) {
-      Alert.alert(
-        'Invalid Amount',
-        'Please enter a valid amount with up to 2 decimal places.',
-        [{ text: 'OK' }],
-      );
-      return;
-    }
-
-    const value = Number(trimmedAmount);
-
-    // Check if the amount is greater than 0
-    if (!Number.isFinite(value) || value <= 0) {
-      Alert.alert(
-        'Invalid Amount',
-        'Amount must be greater than $0.00.',
-        [{ text: 'OK' }],
-      );
-      return;
-    }
-
-    // Check if the description is empty
-    if (!trimmedTitle) {
-     Alert.alert(
-      'Missing Description',
-      'Please enter a description for the expense.',
-      [{ text: 'OK' }],
-     );
-     return;
-    }
-    
     onSave({
-      title: trimmedTitle,
-      amount: value,
-      category
+      title,
+      amount: parseFloat(amount),
+      category,
+      group_id: selectedGroupId,
     });
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={{ paddingBottom: 50 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Pressable onPress={onBack} style={{ marginTop: 20 }}>
-          <Text style={styles.link}>‹ Back</Text>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={styles.header}>
+        <Pressable onPress={onBack} style={styles.backButton}>
+          <Feather name="arrow-left" size={24} color={DARK} />
         </Pressable>
+        <Text style={styles.headerTitle}>New Expense</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-        <Text style={styles.pageTitle}>Add Expense</Text>
-        <Text style={styles.subtext}>Record your spending easily.</Text>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
+        
+        <Text style={styles.label}>Who is paying for?</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.groupScroll}>
+          <Pressable 
+            style={[styles.groupPill, selectedGroupId === null && styles.groupPillActive]}
+            onPress={() => setSelectedGroupId(null)}
+          >
+            <Feather name="user" size={16} color={selectedGroupId === null ? '#FFFFFF' : GRAY} />
+            <Text style={[styles.groupText, selectedGroupId === null && styles.groupTextActive]}>
+              Personal (Just me)
+            </Text>
+          </Pressable>
 
-        <View style={[styles.card, { marginTop: 24 }]}>
-          <Text style={styles.fieldLabel}>Amount (CAD)</Text>
+          {userGroups.map((group) => (
+            <Pressable 
+              key={group.id}
+              style={[styles.groupPill, selectedGroupId === group.id && styles.groupPillActive]}
+              onPress={() => setSelectedGroupId(group.id)}
+            >
+              <Feather name="users" size={16} color={selectedGroupId === group.id ? '#FFFFFF' : GRAY} />
+              <Text style={[styles.groupText, selectedGroupId === group.id && styles.groupTextActive]}>
+                {group.name}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.label}>Amount</Text>
+        <View style={styles.amountContainer}>
+          <Text style={styles.currencySymbol}>$</Text>
           <TextInput
-            style={styles.input}
+            style={styles.amountInput}
             placeholder="0.00"
-            placeholderTextColor="#9BA8BC"
             keyboardType="decimal-pad"
             value={amount}
             onChangeText={setAmount}
-          />
-
-          <Text style={styles.fieldLabel}>Description</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="What did you spend on?"
             placeholderTextColor="#9BA8BC"
-            value={title}
-            onChangeText={setTitle}
           />
-
-          <Text style={styles.fieldLabel}>Category</Text>
-          <View style={styles.categories}>
-            {(['Food', 'Groceries', 'Transport', 'Other'] as const).map((item) => (
-              <Pressable
-                key={item}
-                onPress={() => setCategory(item)}
-                style={[
-                  styles.categoryButton,
-                  category === item && styles.categorySelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryLabel,
-                    category === item && { color: '#FFFFFF' },
-                  ]}
-                >
-                  {item}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Pressable
-            style={[styles.addButton, { paddingVertical: 18, marginTop: 26 }]}
-            onPress={submit}
-          >
-            <Text style={styles.addText}>Save Expense</Text>
-          </Pressable>
         </View>
+
+        <Text style={styles.label}>Expense Name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. T&T Supermarket"
+          value={title}
+          onChangeText={setTitle}
+          placeholderTextColor="#9BA8BC"
+        />
+
+        <Text style={styles.label}>Category</Text>
+        <View style={styles.categoryGrid}>
+          {categories.map((cat) => (
+            <Pressable
+              key={cat.label}
+              style={[styles.categoryCard, category === cat.label && styles.categoryCardActive]}
+              onPress={() => setCategory(cat.label)}
+            >
+              <Feather name={cat.icon} size={24} color={category === cat.label ? BLUE : GRAY} />
+              <Text style={[styles.categoryText, category === cat.label && styles.categoryTextActive]}>
+                {cat.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {selectedGroupId && (
+          <View style={styles.splitNotice}>
+            <Feather name="info" size={16} color={BLUE} />
+            <Text style={styles.splitText}>
+              This will be split equally among group members in the next step.
+            </Text>
+          </View>
+        )}
+
       </ScrollView>
+
+      <View style={styles.footer}>
+        <Pressable style={styles.saveButton} onPress={handleSave}>
+          <Text style={styles.saveButtonText}>Save Expense</Text>
+        </Pressable>
+      </View>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
+  backButton: { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
   content: { flex: 1, paddingHorizontal: 20 },
-  pageTitle: { fontSize: 27, fontWeight: '800', color: DARK, marginTop: 27 },
-  subtext: { color: GRAY, fontSize: 13, marginTop: 4 },
-  card: {
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: '#E9EDF5',
-    shadowColor: '#152D55',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  fieldLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: DARK,
-    marginTop: 18,
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#DDE4EF',
-    backgroundColor: '#FAFBFE',
-    borderRadius: 12,
-    padding: 15,
-    fontSize: 16,
-    color: DARK,
-  },
-  categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryButton: {
-    backgroundColor: '#EEF2F8',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  categorySelected: { backgroundColor: BLUE },
-  categoryLabel: { color: GRAY, fontWeight: '600' },
-  addButton: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BLUE,
-    borderRadius: 12,
-  },
-  addText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  link: { color: BLUE, fontSize: 15, fontWeight: '600' },
+  label: { fontSize: 15, fontWeight: '700', color: DARK, marginTop: 24, marginBottom: 12 },
+  groupScroll: { flexDirection: 'row', overflow: 'visible' },
+  groupPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F4F8', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 20, marginRight: 10, gap: 8 },
+  groupPillActive: { backgroundColor: BLUE },
+  groupText: { fontSize: 14, fontWeight: '600', color: GRAY },
+  groupTextActive: { color: '#FFFFFF' },
+  amountContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FAFBFE', borderWidth: 1, borderColor: '#DDE4EF', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 8 },
+  currencySymbol: { fontSize: 32, fontWeight: '700', color: DARK, marginRight: 8 },
+  amountInput: { flex: 1, fontSize: 36, fontWeight: '700', color: DARK, paddingVertical: 10 },
+  input: { backgroundColor: '#FAFBFE', borderWidth: 1, borderColor: '#DDE4EF', borderRadius: 12, padding: 16, fontSize: 16, color: DARK },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  categoryCard: { width: '48%', backgroundColor: '#FAFBFE', borderWidth: 1, borderColor: '#DDE4EF', borderRadius: 16, padding: 16, alignItems: 'center', gap: 8 },
+  categoryCardActive: { borderColor: BLUE, backgroundColor: '#E8F0FF' },
+  categoryText: { fontSize: 14, fontWeight: '600', color: GRAY },
+  categoryTextActive: { color: BLUE },
+  splitNotice: { flexDirection: 'row', backgroundColor: '#E8F0FF', padding: 16, borderRadius: 12, marginTop: 24, alignItems: 'center', gap: 10 },
+  splitText: { flex: 1, color: BLUE, fontSize: 13, fontWeight: '600' },
+  footer: { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: '#F1F4F8' },
+  saveButton: { backgroundColor: BLUE, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
+  saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });
+
 

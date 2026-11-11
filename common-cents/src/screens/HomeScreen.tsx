@@ -12,6 +12,7 @@ interface HomeScreenProps {
   budget: number;
   onSaveBudget: (value: number) => void;
   onDeleteExpense: (id: string) => void;
+  onLogout: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ 
@@ -19,7 +20,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNavigate,
   budget,
   onSaveBudget,
-  onDeleteExpense 
+  onDeleteExpense,
+  onLogout
 }) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Personal');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -42,8 +44,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <Pressable onPress={() => Alert.alert('Notifications', 'Coming soon')}>
             <Feather name="bell" size={22} color={DARK} />
           </Pressable>
-          <Pressable onPress={() => Alert.alert('Profile', 'Coming soon')}>
-            <Feather name="user" size={23} color={GRAY} />
+          <Pressable onPress={onLogout}>
+            <Feather name="log-out" size={23} color="#D95353" />
           </Pressable>
         </View>
       </View>
@@ -91,7 +93,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </View>
           ) : (
             expenses.slice(0, 5).map((e) => (
-              <ExpenseRow key={e.id} expense={e} onDelete={onDeleteExpense} />
+              <ExpenseRow 
+                key={e.id} 
+                expense={e} 
+                onDelete={onDeleteExpense} 
+              />
             ))
           )}
 
@@ -223,3 +229,4 @@ const styles = StyleSheet.create({
   addText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   link: { color: BLUE, fontSize: 15, fontWeight: '600' },
 });
+

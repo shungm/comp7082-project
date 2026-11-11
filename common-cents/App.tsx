@@ -3,20 +3,31 @@ import { StyleSheet, View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { Screen, Expense } from './src/types/expense';
+import { Screen, Expense, Group } from './src/types/expense';
 import { BottomNavbar } from './src/components/BottomNavbar';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AddExpenseScreen } from './src/screens/AddExpenseScreen';
 import { DetailsScreen } from './src/screens/DetailsScreen';
+import { LoginScreen } from './src/screens/LoginScreen';
+import { GroupsScreen } from './src/screens/GroupsScreen';
 import { MONTHLY_BUDGET } from './src/constants/theme';
 
-import { initDatabase, getExpenses, addExpenseToDB, deleteExpenseFromDB } from './src/db/database';
+import { 
+  initDatabase, 
+  getExpenses, 
+  addExpenseToDB, 
+  deleteExpenseFromDB, 
+  getUserGroups 
+} from './src/db/database';
 
 function MainApp() {
   const [screen, setScreen] = useState<Screen>('home');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [monthlyBudget, setMonthlyBudget] = useState(MONTHLY_BUDGET);
   const [isDbReady, setIsDbReady] = useState(false);
+  
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [userGroups, setUserGroups] = useState<Group[]>([]);
 
   useEffect(() => {
     const setupDatabase = async () => {
@@ -32,7 +43,20 @@ function MainApp() {
     setupDatabase();
   }, []);
 
-  const saveExpense = async (data: Omit<Expense, 'id' | 'date'>) => {
+  const refreshGroups = async () => {
+    if (currentUser) {
+      const groups = await getUserGroups(currentUser);
+      setUserGroups(groups);
+    }
+  };
+
+  useEffect(() => {
+    refreshGroups();
+  }, [currentUser]);
+
+  const saveExpense = async (data: Omit<Expense, 'id' | 'date' | 'paid_by'>) => {
+    if (!currentUser) return;
+
     const newExpense: Expense = {
       ...data,
       id: `${Date.now()}-${Math.random()}`,
@@ -41,6 +65,7 @@ function MainApp() {
         day: 'numeric',
         year: 'numeric',
       }),
+      paid_by: currentUser,
     };
 
     try {
@@ -63,11 +88,26 @@ function MainApp() {
     }
   };
 
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setUserGroups([]);
+    setScreen('home');
+  };
+
   if (!isDbReady) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text>Loading CommonCents...</Text>
       </View>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <LoginScreen onLoginSuccess={(username) => setCurrentUser(username)} />
+      </SafeAreaView>
     );
   }
 
@@ -82,6 +122,7 @@ function MainApp() {
           budget={monthlyBudget}
           onSaveBudget={setMonthlyBudget}
           onDeleteExpense={removeExpense}
+          onLogout={handleLogout}
         />
       )}
 
@@ -89,10 +130,11 @@ function MainApp() {
         <AddExpenseScreen
           onSave={saveExpense}
           onBack={() => setScreen('home')}
+          userGroups={userGroups} 
         />
       )}
 
-      {(screen === 'expenses' || screen === 'budget' || screen === 'groups') && (
+      {(screen === 'expenses' || screen === 'budget') && (
         <DetailsScreen
           screen={screen}
           expenses={expenses}
@@ -100,6 +142,14 @@ function MainApp() {
           budget={monthlyBudget}
           onSaveBudget={setMonthlyBudget}
           onDeleteExpense={removeExpense}
+        />
+      )}
+
+      {screen === 'groups' && (
+        <GroupsScreen 
+          currentUser={currentUser}
+          userGroups={userGroups}
+          onRefreshGroups={refreshGroups}
         />
       )}
 
@@ -117,9 +167,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FFFFFF' 
   },
 });
 
