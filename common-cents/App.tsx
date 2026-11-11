@@ -8,10 +8,12 @@ import { BottomNavbar } from './src/components/BottomNavbar';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AddExpenseScreen } from './src/screens/AddExpenseScreen';
 import { DetailsScreen } from './src/screens/DetailsScreen';
+import { MONTHLY_BUDGET } from './src/constants/theme';
 
 function MainApp() {
   const [screen, setScreen] = useState<Screen>('home');
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [monthlyBudget, setMonthlyBudget] = useState(MONTHLY_BUDGET);
 
   const saveExpense = (data: Omit<Expense, 'id' | 'date'>) => {
     setExpenses((previous) => [
@@ -34,7 +36,12 @@ function MainApp() {
       <StatusBar style="dark" />
 
       {screen === 'home' && (
-        <HomeScreen expenses={expenses} onNavigate={setScreen} />
+        <HomeScreen 
+          expenses={expenses}
+          onNavigate={setScreen} 
+          budget={monthlyBudget}
+          onSaveBudget={setMonthlyBudget}
+          />
       )}
 
       {screen === 'add' && (
@@ -49,6 +56,8 @@ function MainApp() {
           screen={screen}
           expenses={expenses}
           onAdd={() => setScreen('add')}
+          budget={monthlyBudget}
+          onSaveBudget={setMonthlyBudget}
         />
       )}
 

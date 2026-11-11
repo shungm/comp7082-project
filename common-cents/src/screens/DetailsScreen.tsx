@@ -9,9 +9,17 @@ interface DetailsScreenProps {
   screen: 'expenses' | 'budget' | 'groups';
   expenses: Expense[];
   onAdd: () => void;
+  budget: number;
+  onSaveBudget: (value: number) => void;
 }
 
-export const DetailsScreen: React.FC<DetailsScreenProps> = ({ screen, expenses, onAdd }) => {
+export const DetailsScreen: React.FC<DetailsScreenProps> = ({ 
+  screen,
+  expenses,
+  onAdd,
+  budget,
+  onSaveBudget
+}) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
@@ -35,7 +43,11 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({ screen, expenses, 
         <>
           {screen === 'budget' && (
             <View style={{ marginTop: 20 }}>
-              <BudgetCard total={total} />
+              <BudgetCard 
+              total={total} 
+              budget={budget}
+              onSaveBudget={onSaveBudget}
+              />
             </View>
           )}
 
