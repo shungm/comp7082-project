@@ -5,6 +5,7 @@ import { Expense, Screen } from '../types/expense';
 import { BudgetCard } from '../components/BudgetCard';
 import { ExpenseRow } from '../components/ExpenseRow';
 import { BLUE, DARK, GRAY } from '../constants/theme';
+import { useReceiptScanner } from '../components/useReceiptScanner';
 
 interface HomeScreenProps {
   expenses: Expense[];
@@ -20,6 +21,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onSaveBudget }) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Personal');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const { receiptUri, scanReceipt, clearReceipt } = useReceiptScanner();  // Call useReceiptScanner hook
+
 
   return (
     <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 28 }}>
@@ -91,12 +94,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           )}
 
           <View style={styles.actionRow}>
-            <Pressable
-              style={styles.scanButton}
-              onPress={() =>
-                Alert.alert('Scan Receipt', 'Coming in a future sprint.')
-              }
-            >
+            <Pressable style={styles.scanButton} onPress={scanReceipt}>
               <Feather name="camera" size={17} color={BLUE} />
               <Text style={styles.scanText}>Scan Receipt</Text>
             </Pressable>

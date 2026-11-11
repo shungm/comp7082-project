@@ -18,6 +18,16 @@
       },
       "predictiveBackGestureEnabled": false
     },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "CommonCents uses camera to scan or take photo of receipts."
+        }
+      ],
+      "expo-status-bar",
+      "expo-font"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }
