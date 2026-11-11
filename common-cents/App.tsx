@@ -10,18 +10,14 @@ import { AddExpenseScreen } from './src/screens/AddExpenseScreen';
 import { DetailsScreen } from './src/screens/DetailsScreen';
 import { MONTHLY_BUDGET } from './src/constants/theme';
 
-// Import local SQLite database methods
-import { initDatabase, getExpenses, addExpenseToDB } from './src/db/database';
+import { initDatabase, getExpenses, addExpenseToDB, deleteExpenseFromDB } from './src/db/database';
 
 function MainApp() {
   const [screen, setScreen] = useState<Screen>('home');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [monthlyBudget, setMonthlyBudget] = useState(MONTHLY_BUDGET);
-  
-  // Track database readiness state
   const [isDbReady, setIsDbReady] = useState(false);
 
-  // Initialize database and load local data on app mount
   useEffect(() => {
     const setupDatabase = async () => {
       try {
@@ -36,7 +32,6 @@ function MainApp() {
     setupDatabase();
   }, []);
 
-  // Save new record to SQLite and update React state
   const saveExpense = async (data: Omit<Expense, 'id' | 'date'>) => {
     const newExpense: Expense = {
       ...data,
@@ -49,21 +44,25 @@ function MainApp() {
     };
 
     try {
-      // 1. Save data to SQLite database
       await addExpenseToDB(newExpense);
-      
-      // 2. Fetch updated expense list to keep UI synchronized
       const updatedExpenses = await getExpenses();
       setExpenses(updatedExpenses);
-      
-      // 3. Navigate back to Home screen
       setScreen('home');
     } catch (error) {
       console.error("Failed to save expense:", error);
     }
   };
 
-  // Render a loading state until the database is ready
+  const removeExpense = async (id: string) => {
+    try {
+      await deleteExpenseFromDB(id);
+      const updatedExpenses = await getExpenses();
+      setExpenses(updatedExpenses);
+    } catch (error) {
+      console.error("Failed to delete expense:", error);
+    }
+  };
+
   if (!isDbReady) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -82,6 +81,7 @@ function MainApp() {
           onNavigate={setScreen} 
           budget={monthlyBudget}
           onSaveBudget={setMonthlyBudget}
+          onDeleteExpense={removeExpense}
         />
       )}
 
@@ -99,6 +99,7 @@ function MainApp() {
           onAdd={() => setScreen('add')}
           budget={monthlyBudget}
           onSaveBudget={setMonthlyBudget}
+          onDeleteExpense={removeExpense}
         />
       )}
 

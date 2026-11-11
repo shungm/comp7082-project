@@ -35,3 +35,9 @@ export const addExpenseToDB = async (expense: Expense) => {
     [expense.id, expense.title, expense.amount, expense.category, expense.date]
   );
 };
+
+// Add delete function
+export const deleteExpenseFromDB = async (id: string) => {
+  const db = await getDB();
+  await db.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
+};

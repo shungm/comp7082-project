@@ -11,13 +11,16 @@ interface HomeScreenProps {
   onNavigate: (s: Screen) => void;
   budget: number;
   onSaveBudget: (value: number) => void;
+  onDeleteExpense: (id: string) => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ 
   expenses,
   onNavigate,
   budget,
-  onSaveBudget }) => {
+  onSaveBudget,
+  onDeleteExpense 
+}) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Personal');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -87,7 +90,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </Text>
             </View>
           ) : (
-            expenses.slice(0, 5).map((e) => <ExpenseRow key={e.id} expense={e} />)
+            expenses.slice(0, 5).map((e) => (
+              <ExpenseRow key={e.id} expense={e} onDelete={onDeleteExpense} />
+            ))
           )}
 
           <View style={styles.actionRow}>
@@ -218,4 +223,3 @@ const styles = StyleSheet.create({
   addText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   link: { color: BLUE, fontSize: 15, fontWeight: '600' },
 });
-

@@ -11,6 +11,7 @@ interface DetailsScreenProps {
   onAdd: () => void;
   budget: number;
   onSaveBudget: (value: number) => void;
+  onDeleteExpense: (id: string) => void;
 }
 
 export const DetailsScreen: React.FC<DetailsScreenProps> = ({ 
@@ -18,7 +19,8 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
   expenses,
   onAdd,
   budget,
-  onSaveBudget
+  onSaveBudget,
+  onDeleteExpense
 }) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -44,9 +46,9 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
           {screen === 'budget' && (
             <View style={{ marginTop: 20 }}>
               <BudgetCard 
-              total={total} 
-              budget={budget}
-              onSaveBudget={onSaveBudget}
+                total={total} 
+                budget={budget}
+                onSaveBudget={onSaveBudget}
               />
             </View>
           )}
@@ -61,7 +63,9 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
           {expenses.length === 0 ? (
             <Text style={styles.emptyText}>No expenses yet.</Text>
           ) : (
-            expenses.map((e) => <ExpenseRow key={e.id} expense={e} />)
+            expenses.map((e) => (
+              <ExpenseRow key={e.id} expense={e} onDelete={onDeleteExpense} />
+            ))
           )}
         </>
       )}
