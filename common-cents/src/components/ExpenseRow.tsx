@@ -13,6 +13,8 @@ export const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense }) => {
     Food: 'coffee',
     Groceries: 'shopping-cart',
     Transport: 'truck',
+    Entertainment: 'film',
+    Utilities: 'zap',
     Other: 'credit-card',
   };
 

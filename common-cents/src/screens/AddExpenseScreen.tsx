@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, Pressable, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
-import { Expense, Category } from '../types/expense';
+import { CATEGORIES, type Expense, type Category } from '../types/expense';
 import { BLUE, DARK, GRAY } from '../constants/theme';
 
 interface AddExpenseScreenProps {
@@ -117,7 +117,7 @@ export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBa
 
           <Text style={styles.fieldLabel}>Category</Text>
           <View style={styles.categories}>
-            {(['Food', 'Groceries', 'Transport', 'Other'] as const).map((item) => (
+          {CATEGORIES.map((item) => (
               <Pressable
                 key={item}
                 onPress={() => setCategory(item)}

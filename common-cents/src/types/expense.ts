@@ -1,5 +1,19 @@
-export type Screen = 'home' | 'add' | 'expenses' | 'budget' | 'groups';
-export type Category = 'Food' | 'Groceries' | 'Transport' | 'Other';
+export type Screen = 
+  | 'home' 
+  | 'add' 
+  | 'expenses' 
+  | 'budget' 
+  | 'groups';
+export const CATEGORIES = [
+  'Food',
+  'Groceries',
+  'Transport',
+  'Entertainment',
+  'Utilities',
+  'Other',
+] as const;
+
+export type Category = typeof CATEGORIES[number];
 
 export type Expense = {
   id: string;
