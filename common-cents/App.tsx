@@ -14,7 +14,7 @@ import { MONTHLY_BUDGET } from './src/constants/theme';
 
 import { 
   initDatabase, 
-  getExpenses, 
+  getExpensesForUser, 
   addExpenseToDB, 
   deleteExpenseFromDB, 
   getUserGroups 
@@ -29,32 +29,32 @@ function MainApp() {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
 
+  // Initialize DB and load user-specific expenses and groups when user logs in
   useEffect(() => {
-    const setupDatabase = async () => {
-      try {
-        await initDatabase();
-        const loadedExpenses = await getExpenses();
+    try {
+      initDatabase();
+      if (currentUser) {
+        const loadedExpenses = getExpensesForUser(currentUser);
         setExpenses(loadedExpenses);
-        setIsDbReady(true);
-      } catch (error) {
-        console.error("Database initialization failed:", error);
+        const groups = getUserGroups(currentUser);
+        setUserGroups(groups);
       }
-    };
-    setupDatabase();
-  }, []);
+      setIsDbReady(true);
+    } catch (error) {
+      console.error("Database initialization failed:", error);
+    }
+  }, [currentUser]);
 
-  const refreshGroups = async () => {
+  const refreshData = () => {
     if (currentUser) {
-      const groups = await getUserGroups(currentUser);
+      const loadedExpenses = getExpensesForUser(currentUser);
+      setExpenses(loadedExpenses);
+      const groups = getUserGroups(currentUser);
       setUserGroups(groups);
     }
   };
 
-  useEffect(() => {
-    refreshGroups();
-  }, [currentUser]);
-
-  const saveExpense = async (data: Omit<Expense, 'id' | 'date' | 'paid_by'>) => {
+  const saveExpense = (data: Omit<Expense, 'id' | 'date' | 'paid_by' | 'owner_username'>) => {
     if (!currentUser) return;
 
     const newExpense: Expense = {
@@ -66,23 +66,22 @@ function MainApp() {
         year: 'numeric',
       }),
       paid_by: currentUser,
+      owner_username: currentUser, // Assign ownership to current user for personal data isolation
     };
 
     try {
-      await addExpenseToDB(newExpense);
-      const updatedExpenses = await getExpenses();
-      setExpenses(updatedExpenses);
+      addExpenseToDB(newExpense);
+      refreshData();
       setScreen('home');
     } catch (error) {
       console.error("Failed to save expense:", error);
     }
   };
 
-  const removeExpense = async (id: string) => {
+  const removeExpense = (id: string) => {
     try {
-      await deleteExpenseFromDB(id);
-      const updatedExpenses = await getExpenses();
-      setExpenses(updatedExpenses);
+      deleteExpenseFromDB(id);
+      refreshData();
     } catch (error) {
       console.error("Failed to delete expense:", error);
     }
@@ -91,6 +90,7 @@ function MainApp() {
   const handleLogout = () => {
     setCurrentUser(null);
     setUserGroups([]);
+    setExpenses([]);
     setScreen('home');
   };
 
@@ -149,7 +149,7 @@ function MainApp() {
         <GroupsScreen 
           currentUser={currentUser}
           userGroups={userGroups}
-          onRefreshGroups={refreshGroups}
+          onRefreshGroups={refreshData}
         />
       )}
 

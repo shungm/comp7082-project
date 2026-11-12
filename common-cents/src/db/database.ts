@@ -1,13 +1,11 @@
 import * as SQLite from 'expo-sqlite';
-import { Expense, Group } from '../types/expense';
+import { Expense, Group, GroupMember } from '../types/expense';
 
-export const getDB = async () => {
-  return await SQLite.openDatabaseAsync('commoncents_v2.db');
-};
+// Open the database using the standard synchronous/compatible API
+const db = SQLite.openDatabaseSync('commoncents_v3.db');
 
-export const initDatabase = async () => {
-  const db = await getDB();
-  await db.execAsync(`
+export const initDatabase = () => {
+  db.execSync(`
     PRAGMA journal_mode = WAL;
     
     CREATE TABLE IF NOT EXISTS users (
@@ -34,108 +32,121 @@ export const initDatabase = async () => {
       category TEXT NOT NULL,
       date TEXT NOT NULL,
       paid_by TEXT NOT NULL,
+      owner_username TEXT NOT NULL,
       group_id TEXT
     );
   `);
 
-  await db.runAsync('INSERT OR IGNORE INTO users (id, username, password) VALUES (?, ?, ?)', ['test-user', 'test', '123']);
-  await db.runAsync('INSERT OR IGNORE INTO users (id, username, password) VALUES (?, ?, ?)', ['stan-user', 'stan', '123']);
+  // Seed default test accounts and group
+  db.runSync('INSERT OR IGNORE INTO users (id, username, password) VALUES (?, ?, ?)', ['test-user', 'test', '123']);
+  db.runSync('INSERT OR IGNORE INTO users (id, username, password) VALUES (?, ?, ?)', ['stan-user', 'stan', '123']);
 
-  await db.runAsync('INSERT OR IGNORE INTO groups (id, name) VALUES (?, ?)', ['group-1', 'Roommates']);
-  await db.runAsync('INSERT OR IGNORE INTO group_members (group_id, username) VALUES (?, ?)', ['group-1', 'test']);
-  await db.runAsync('INSERT OR IGNORE INTO group_members (group_id, username) VALUES (?, ?)', ['group-1', 'stan']);
+  db.runSync('INSERT OR IGNORE INTO groups (id, name) VALUES (?, ?)', ['group-1', 'Roommates']);
+  db.runSync('INSERT OR IGNORE INTO group_members (group_id, username) VALUES (?, ?)', ['group-1', 'test']);
+  db.runSync('INSERT OR IGNORE INTO group_members (group_id, username) VALUES (?, ?)', ['group-1', 'stan']);
 };
 
 // --- AUTHENTICATION ---
-export const registerUser = async (username: string, password: string): Promise<boolean> => {
-  const db = await getDB();
+export const registerUser = (username: string, password: string): boolean => {
   try {
     const newId = `${Date.now()}-${Math.random()}`;
-    await db.runAsync('INSERT INTO users (id, username, password) VALUES (?, ?, ?)', [newId, username, password]);
+    db.runSync('INSERT INTO users (id, username, password) VALUES (?, ?, ?)', [newId, username, password]);
     return true;
   } catch (error) {
     return false;
   }
 };
 
-export const loginUser = async (username: string, password: string): Promise<boolean> => {
-  const db = await getDB();
-  const user = await db.getFirstAsync('SELECT * FROM users WHERE username = ? AND password = ?', [username, password]);
+export const loginUser = (username: string, password: string): boolean => {
+  const user = db.getFirstSync('SELECT * FROM users WHERE username = ? AND password = ?', [username, password]);
   return user !== null;
 };
 
 // --- GROUP MANAGEMENT ---
-export const createGroup = async (name: string, creatorUsername: string): Promise<boolean> => {
-  const db = await getDB();
+export const createGroup = (name: string, creatorUsername: string): boolean => {
   try {
     const newGroupId = `group-${Date.now()}-${Math.random()}`;
-    await db.runAsync('INSERT INTO groups (id, name) VALUES (?, ?)', [newGroupId, name]);
-    await db.runAsync('INSERT INTO group_members (group_id, username) VALUES (?, ?)', [newGroupId, creatorUsername]);
+    db.runSync('INSERT INTO groups (id, name) VALUES (?, ?)', [newGroupId, name]);
+    db.runSync('INSERT INTO group_members (group_id, username) VALUES (?, ?)', [newGroupId, creatorUsername]);
     return true;
   } catch (error) {
     return false;
   }
 };
 
-export const checkUserExists = async (username: string): Promise<boolean> => {
-  const db = await getDB();
-  const user = await db.getFirstAsync('SELECT id FROM users WHERE username = ?', [username]);
+export const checkUserExists = (username: string): boolean => {
+  const user: any = db.getFirstSync('SELECT id FROM users WHERE username = ?', [username]);
   return user !== null;
 };
 
-export const addMemberToGroup = async (groupId: string, username: string): Promise<boolean> => {
-  const db = await getDB();
+export const addMemberToGroup = (groupId: string, username: string): boolean => {
   try {
-    await db.runAsync('INSERT INTO group_members (group_id, username) VALUES (?, ?)', [groupId, username]);
+    db.runSync('INSERT INTO group_members (group_id, username) VALUES (?, ?)', [groupId, username]);
     return true;
   } catch (error) {
     return false; 
   }
 };
 
-export const removeMemberFromGroup = async (groupId: string, username: string): Promise<void> => {
-  const db = await getDB();
-  await db.runAsync('DELETE FROM group_members WHERE group_id = ? AND username = ?', [groupId, username]);
+export const removeMemberFromGroup = (groupId: string, username: string): void => {
+  db.runSync('DELETE FROM group_members WHERE group_id = ? AND username = ?', [groupId, username]);
 };
 
-export const getUserGroups = async (username: string): Promise<Group[]> => {
-  const db = await getDB();
-  // Using SQLite GROUP_CONCAT to fetch all member names in a single query
-  const rows = await db.getAllAsync<any>(
-    `SELECT g.id, g.name, (
-       SELECT GROUP_CONCAT(username, ',') 
-       FROM group_members 
-       WHERE group_id = g.id
-     ) as membersStr
+export const getUserGroups = (username: string): Group[] => {
+  const groupRows = db.getAllSync<any>(
+    `SELECT g.id, g.name 
      FROM groups g 
      JOIN group_members gm ON g.id = gm.group_id 
      WHERE gm.username = ?`,
     [username]
   );
-  
-  return rows.map(row => ({
-    id: row.id,
-    name: row.name,
-    members: row.membersStr ? row.membersStr.split(',') : []
-  }));
+
+  const groups: Group[] = [];
+
+  for (const gRow of groupRows) {
+    const memberRows = db.getAllSync<any>(
+      `SELECT gm.username, 
+        COALESCE((
+          SELECT SUM(e.amount) 
+          FROM expenses e 
+          WHERE e.group_id = ? AND e.paid_by = gm.username
+        ), 0) as total_spent
+       FROM group_members gm
+       WHERE gm.group_id = ?`,
+      [gRow.id, gRow.id]
+    );
+
+    const members: GroupMember[] = memberRows.map((m: any) => ({
+      username: m.username,
+      total_spent: m.total_spent
+    }));
+
+    groups.push({
+      id: gRow.id,
+      name: gRow.name,
+      members
+    });
+  }
+
+  return groups;
 };
 
 // --- EXPENSES ---
-export const getExpenses = async (): Promise<Expense[]> => {
-  const db = await getDB();
-  return await db.getAllAsync<Expense>('SELECT * FROM expenses ORDER BY id DESC');
-};
-
-export const addExpenseToDB = async (expense: Expense) => {
-  const db = await getDB();
-  await db.runAsync(
-    'INSERT INTO expenses (id, title, amount, category, date, paid_by, group_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [expense.id, expense.title, expense.amount, expense.category, expense.date, expense.paid_by, expense.group_id || null]
+export const getExpensesForUser = (username: string): Expense[] => {
+  return db.getAllSync<Expense>(
+    'SELECT * FROM expenses WHERE owner_username = ? AND group_id IS NULL ORDER BY id DESC',
+    [username]
   );
 };
 
-export const deleteExpenseFromDB = async (id: string) => {
-  const db = await getDB();
-  await db.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
+export const addExpenseToDB = (expense: Expense) => {
+  db.runSync(
+    'INSERT INTO expenses (id, title, amount, category, date, paid_by, owner_username, group_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [expense.id, expense.title, expense.amount, expense.category, expense.date, expense.paid_by, expense.owner_username, expense.group_id || null]
+  );
+};
+
+export const deleteExpenseFromDB = (id: string) => {
+  db.runSync('DELETE FROM expenses WHERE id = ?', [id]);
 };
 

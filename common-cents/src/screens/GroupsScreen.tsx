@@ -42,7 +42,7 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({ currentUser, userGro
     const added = await addMemberToGroup(groupId, username);
     if (added) {
       setNewMemberName('');
-      onRefreshGroups(); // Refresh to show the new member in the list
+      onRefreshGroups();
       Alert.alert('Success', `${username} has been added to the group!`);
     } else {
       Alert.alert('Notice', `${username} is already in this group.`);
@@ -65,7 +65,7 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({ currentUser, userGro
           style: 'destructive', 
           onPress: async () => {
             await removeMemberFromGroup(groupId, username);
-            onRefreshGroups(); // Refresh UI to reflect removal
+            onRefreshGroups();
           }
         }
       ]
@@ -126,28 +126,31 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({ currentUser, userGro
               {activeGroupId === group.id && (
                 <View style={styles.expandedSection}>
                   
-                  {/* Current Members List */}
-                  <Text style={styles.label}>Current Members</Text>
+                  {/* Members & Spending List */}
+                  <Text style={styles.label}>Members & Spending</Text>
                   <View style={styles.membersList}>
                     {group.members.map((member) => (
-                      <View key={member} style={styles.memberRow}>
+                      <View key={member.username} style={styles.memberRow}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                           <Feather name="user" size={16} color={DARK} />
                           <Text style={styles.memberName}>
-                            {member} {member === currentUser ? '(You)' : ''}
+                            {member.username} {member.username === currentUser ? '(You)' : ''}
                           </Text>
                         </View>
-                        <Pressable 
-                          onPress={() => handleRemoveMember(group.id, member)}
-                          style={{ padding: 4 }}
-                        >
-                          <Feather name="x-circle" size={18} color="#D95353" />
-                        </Pressable>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                          <Text style={styles.memberSpent}>${member.total_spent.toFixed(2)}</Text>
+                          <Pressable 
+                            onPress={() => handleRemoveMember(group.id, member.username)}
+                            style={{ padding: 4 }}
+                          >
+                            <Feather name="x-circle" size={18} color="#D95353" />
+                          </Pressable>
+                        </View>
                       </View>
                     ))}
                   </View>
 
-                  {/* Add New Member Input */}
+                  {/* Add Member Input */}
                   <Text style={[styles.label, { marginTop: 16 }]}>Add Member (Username)</Text>
                   <View style={styles.addMemberRow}>
                     <TextInput
@@ -192,6 +195,7 @@ const styles = StyleSheet.create({
   membersList: { backgroundColor: '#FAFBFE', borderRadius: 12, borderWidth: 1, borderColor: '#DDE4EF', overflow: 'hidden' },
   memberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderBottomWidth: 1, borderBottomColor: '#F1F4F8' },
   memberName: { fontSize: 15, fontWeight: '600', color: DARK },
+  memberSpent: { fontSize: 14, fontWeight: '700', color: BLUE },
   input: { backgroundColor: '#FAFBFE', borderWidth: 1, borderColor: '#DDE4EF', borderRadius: 10, padding: 14, fontSize: 15, color: DARK, marginBottom: 16 },
   addMemberRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   saveButton: { backgroundColor: DARK, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
@@ -201,4 +205,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', marginTop: 60 },
   emptyText: { color: GRAY, fontSize: 15, marginTop: 12 },
 });
+
 
