@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
+import {
+  View,
+  Text,
   TextInput,
-  Pressable, 
-  ScrollView, 
-  StyleSheet
- } from 'react-native';
+  Pressable,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import { CATEGORIES, type Expense } from '../types/expense';
 import { BudgetCard } from '../components/BudgetCard';
 import { ExpenseRow } from '../components/ExpenseRow';
@@ -18,14 +18,16 @@ interface DetailsScreenProps {
   onAdd: () => void;
   budget: number;
   onSaveBudget: (value: number) => void;
+  onDeleteExpense: (id: string) => void;
 }
 
-export const DetailsScreen: React.FC<DetailsScreenProps> = ({ 
+export const DetailsScreen: React.FC<DetailsScreenProps> = ({
   screen,
   expenses,
   onAdd,
   budget,
-  onSaveBudget
+  onSaveBudget,
+  onDeleteExpense,
 }) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -36,17 +38,13 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
 
   const filteredExpenses = expenses.filter((expense) => {
     const query = searchQuery.trim().toLowerCase();
-
-    // Search by description
     const matchesSearch = expense.title.toLowerCase().includes(query);
-    // Filter by category
-    const matchesCategory = 
-      selectedCategory === 'All' ||
-      expense.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === 'All' || expense.category === selectedCategory;
 
-      return matchesSearch && matchesCategory;
+    return matchesSearch && matchesCategory;
   });
-  
+
   return (
     <ScrollView style={styles.content}>
       <Text style={styles.pageTitle}>
@@ -68,10 +66,10 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
         <>
           {screen === 'budget' && (
             <View style={{ marginTop: 20 }}>
-              <BudgetCard 
-              total={total} 
-              budget={budget}
-              onSaveBudget={onSaveBudget}
+              <BudgetCard
+                total={total}
+                budget={budget}
+                onSaveBudget={onSaveBudget}
               />
             </View>
           )}
@@ -105,15 +103,13 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
                 onPress={() => setSelectedCategory(category)}
                 style={[
                   styles.filterButton,
-                  selectedCategory === category &&
-                    styles.filterSelected,
+                  selectedCategory === category && styles.filterSelected,
                 ]}
               >
                 <Text
                   style={[
                     styles.filterText,
-                    selectedCategory === category &&
-                      styles.filterTextSelected,
+                    selectedCategory === category && styles.filterTextSelected,
                   ]}
                 >
                   {category}
@@ -122,16 +118,19 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
             ))}
           </ScrollView>
 
-
-          {expenses.length === 0 ? (
+          {filteredExpenses.length === 0 ? (
             <Text style={styles.emptyText}>
               {expenses.length === 0
                 ? 'No expenses yet.'
                 : 'No matching expenses found.'}
-              </Text>
+            </Text>
           ) : (
             filteredExpenses.map((e) => (
-            <ExpenseRow key={e.id} expense={e} />
+              <ExpenseRow
+                key={e.id}
+                expense={e}
+                onDelete={onDeleteExpense}
+              />
             ))
           )}
         </>
@@ -203,6 +202,4 @@ const styles = StyleSheet.create({
   filterTextSelected: {
     color: '#FFFFFF',
   },
-    
 });
-
