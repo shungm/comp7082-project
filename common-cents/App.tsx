@@ -11,13 +11,14 @@ import { DetailsScreen } from './src/screens/DetailsScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { GroupsScreen } from './src/screens/GroupsScreen';
 import { MONTHLY_BUDGET } from './src/constants/theme';
+import { ParsedReceipt } from './src/components/receiptParser';
 
-import { 
-  initDatabase, 
-  getExpensesForUser, 
-  addExpenseToDB, 
-  deleteExpenseFromDB, 
-  getUserGroups 
+import {
+  initDatabase,
+  getExpensesForUser,
+  addExpenseToDB,
+  deleteExpenseFromDB,
+  getUserGroups,
 } from './src/db/database';
 
 function MainApp() {
@@ -25,9 +26,10 @@ function MainApp() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [monthlyBudget, setMonthlyBudget] = useState(MONTHLY_BUDGET);
   const [isDbReady, setIsDbReady] = useState(false);
-  
+
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
+  const [receiptPrefill, setReceiptPrefill] = useState<ParsedReceipt | null>(null);
 
   // Initialize DB and load user-specific expenses and groups when user logs in
   useEffect(() => {
@@ -41,9 +43,16 @@ function MainApp() {
       }
       setIsDbReady(true);
     } catch (error) {
-      console.error("Database initialization failed:", error);
+      console.error('Database initialization failed:', error);
     }
   }, [currentUser]);
+
+  // Clear scanned receipt data if user navigates away from 'add' screen
+  useEffect(() => {
+    if (screen !== 'add') {
+      setReceiptPrefill(null);
+    }
+  }, [screen]);
 
   const refreshData = () => {
     if (currentUser) {
@@ -54,7 +63,14 @@ function MainApp() {
     }
   };
 
-  const saveExpense = (data: Omit<Expense, 'id' | 'date' | 'paid_by' | 'owner_username'>) => {
+  const handleReceiptScanned = (data: ParsedReceipt) => {
+    setReceiptPrefill(data);
+    setScreen('add');
+  };
+
+  const saveExpense = (
+    data: Omit<Expense, 'id' | 'date' | 'paid_by' | 'owner_username'>
+  ) => {
     if (!currentUser) return;
 
     const newExpense: Expense = {
@@ -72,9 +88,10 @@ function MainApp() {
     try {
       addExpenseToDB(newExpense);
       refreshData();
+      setReceiptPrefill(null);
       setScreen('home');
     } catch (error) {
-      console.error("Failed to save expense:", error);
+      console.error('Failed to save expense:', error);
     }
   };
 
@@ -83,7 +100,7 @@ function MainApp() {
       deleteExpenseFromDB(id);
       refreshData();
     } catch (error) {
-      console.error("Failed to delete expense:", error);
+      console.error('Failed to delete expense:', error);
     }
   };
 
@@ -91,12 +108,18 @@ function MainApp() {
     setCurrentUser(null);
     setUserGroups([]);
     setExpenses([]);
+    setReceiptPrefill(null);
     setScreen('home');
   };
 
   if (!isDbReady) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View
+        style={[
+          styles.container,
+          { justifyContent: 'center', alignItems: 'center' },
+        ]}
+      >
         <Text>Loading CommonCents...</Text>
       </View>
     );
@@ -116,21 +139,26 @@ function MainApp() {
       <StatusBar style="dark" />
 
       {screen === 'home' && (
-        <HomeScreen 
+        <HomeScreen
           expenses={expenses}
-          onNavigate={setScreen} 
+          onNavigate={setScreen}
           budget={monthlyBudget}
           onSaveBudget={setMonthlyBudget}
           onDeleteExpense={removeExpense}
           onLogout={handleLogout}
+          onReceiptScanned={handleReceiptScanned}
         />
       )}
 
       {screen === 'add' && (
         <AddExpenseScreen
+          initialValues={receiptPrefill}
           onSave={saveExpense}
-          onBack={() => setScreen('home')}
-          userGroups={userGroups} 
+          onBack={() => {
+            setScreen('home');
+            setReceiptPrefill(null);
+          }}
+          userGroups={userGroups}
         />
       )}
 
@@ -146,7 +174,7 @@ function MainApp() {
       )}
 
       {screen === 'groups' && (
-        <GroupsScreen 
+        <GroupsScreen
           currentUser={currentUser}
           userGroups={userGroups}
           onRefreshGroups={refreshData}
@@ -167,9 +195,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#FFFFFF' 
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
 });
 

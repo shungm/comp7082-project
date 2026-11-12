@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Image,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Expense, Screen } from '../types/expense';
 import { BudgetCard } from '../components/BudgetCard';
 import { ExpenseRow } from '../components/ExpenseRow';
 import { BLUE, DARK, GRAY } from '../constants/theme';
+import { useReceiptScanner } from '../components/useReceiptScanner';
+import { ParsedReceipt } from '../components/receiptParser';
 
 interface HomeScreenProps {
   expenses: Expense[];
@@ -13,21 +23,27 @@ interface HomeScreenProps {
   onSaveBudget: (value: number) => void;
   onDeleteExpense: (id: string) => void;
   onLogout: () => void;
+  onReceiptScanned: (data: ParsedReceipt) => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ 
+export const HomeScreen: React.FC<HomeScreenProps> = ({
   expenses,
   onNavigate,
   budget,
   onSaveBudget,
   onDeleteExpense,
-  onLogout
+  onLogout,
+  onReceiptScanned,
 }) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Personal');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const { scanReceipt, isScanning } = useReceiptScanner(onReceiptScanned);
 
   return (
-    <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 28 }}>
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={{ paddingBottom: 28 }}
+    >
       <View style={styles.header}>
         <View style={styles.brand}>
           <Image
@@ -54,7 +70,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         {(['Personal', 'Groups'] as const).map((value) => (
           <Pressable
             key={value}
-            style={[styles.segmentButton, mode === value && styles.segmentActive]}
+            style={[
+              styles.segmentButton,
+              mode === value && styles.segmentActive,
+            ]}
             onPress={() => setMode(value)}
           >
             <Text
@@ -71,8 +90,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {mode === 'Personal' ? (
         <>
-          <BudgetCard 
-            total={total} 
+          <BudgetCard
+            total={total}
             budget={budget}
             onSaveBudget={onSaveBudget}
           />
@@ -92,21 +111,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </Text>
             </View>
           ) : (
-            expenses.slice(0, 5).map((e) => (
-              <ExpenseRow 
-                key={e.id} 
-                expense={e} 
-                onDelete={onDeleteExpense} 
-              />
-            ))
+            expenses
+              .slice(0, 5)
+              .map((e) => (
+                <ExpenseRow
+                  key={e.id}
+                  expense={e}
+                  onDelete={onDeleteExpense}
+                />
+              ))
           )}
 
           <View style={styles.actionRow}>
             <Pressable
               style={styles.scanButton}
-              onPress={() =>
-                Alert.alert('Scan Receipt', 'Coming in a future sprint.')
-              }
+              onPress={scanReceipt}
+              disabled={isScanning}
             >
               <Feather name="camera" size={17} color={BLUE} />
               <Text style={styles.scanText}>Scan Receipt</Text>
