@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image, ActivityIndicator} from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Image,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Expense, Screen } from '../types/expense';
 import { BudgetCard } from '../components/BudgetCard';
@@ -13,22 +21,29 @@ interface HomeScreenProps {
   onNavigate: (s: Screen) => void;
   budget: number;
   onSaveBudget: (value: number) => void;
-  onReceiptScanned: (data: ParsedReceipt) => void;  // Callback for when a receipt is scanned
+  onDeleteExpense: (id: string) => void;
+  onLogout: () => void;
+  onReceiptScanned: (data: ParsedReceipt) => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ 
+export const HomeScreen: React.FC<HomeScreenProps> = ({
   expenses,
   onNavigate,
   budget,
   onSaveBudget,
-  onReceiptScanned }) => {
+  onDeleteExpense,
+  onLogout,
+  onReceiptScanned,
+}) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Personal');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const { scanReceipt, isScanning} = useReceiptScanner(onReceiptScanned);  // Call useReceiptScanner hook
-
+  const { scanReceipt, isScanning } = useReceiptScanner(onReceiptScanned);
 
   return (
-    <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 28 }}>
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={{ paddingBottom: 28 }}
+    >
       <View style={styles.header}>
         <View style={styles.brand}>
           <Image
@@ -45,8 +60,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <Pressable onPress={() => Alert.alert('Notifications', 'Coming soon')}>
             <Feather name="bell" size={22} color={DARK} />
           </Pressable>
-          <Pressable onPress={() => Alert.alert('Profile', 'Coming soon')}>
-            <Feather name="user" size={23} color={GRAY} />
+          <Pressable onPress={onLogout}>
+            <Feather name="log-out" size={23} color="#D95353" />
           </Pressable>
         </View>
       </View>
@@ -55,7 +70,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         {(['Personal', 'Groups'] as const).map((value) => (
           <Pressable
             key={value}
-            style={[styles.segmentButton, mode === value && styles.segmentActive]}
+            style={[
+              styles.segmentButton,
+              mode === value && styles.segmentActive,
+            ]}
             onPress={() => setMode(value)}
           >
             <Text
@@ -72,8 +90,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {mode === 'Personal' ? (
         <>
-          <BudgetCard 
-            total={total} 
+          <BudgetCard
+            total={total}
             budget={budget}
             onSaveBudget={onSaveBudget}
           />
@@ -93,12 +111,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </Text>
             </View>
           ) : (
-            expenses.slice(0, 5).map((e) => <ExpenseRow key={e.id} expense={e} />)
+            expenses
+              .slice(0, 5)
+              .map((e) => (
+                <ExpenseRow
+                  key={e.id}
+                  expense={e}
+                  onDelete={onDeleteExpense}
+                />
+              ))
           )}
 
           <View style={styles.actionRow}>
-            <Pressable style={styles.scanButton} onPress={scanReceipt} disabled={isScanning}>
-              <Feather name="camera" size={17} color="#FFFFFF" />
+            <Pressable
+              style={styles.scanButton}
+              onPress={scanReceipt}
+              disabled={isScanning}
+            >
+              <Feather name="camera" size={17} color={BLUE} />
               <Text style={styles.scanText}>Scan Receipt</Text>
             </Pressable>
 
@@ -201,11 +231,11 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BLUE,
+    backgroundColor: '#E8F0FF',
     paddingVertical: 16,
     borderRadius: 12,
   },
-  scanText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  scanText: { color: BLUE, fontSize: 13, fontWeight: '700' },
   addButton: {
     flex: 1,
     flexDirection: 'row',
