@@ -9,12 +9,13 @@ import { BLUE, DARK, GRAY } from '../constants/theme';
 interface AddExpenseScreenProps {
   onSave: (e: Omit<Expense, 'id' | 'date'>) => void;
   onBack: () => void;
+  initialValues?: {title: string; amount: string; category: Category} | null;
 }
 
-export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBack }) => {
-  const [amount, setAmount] = useState('');
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<Category>('Food');
+export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBack, initialValues }) => {
+  const [amount, setAmount] = useState(initialValues?.amount ?? '');
+  const [title, setTitle] = useState(initialValues?.title ?? '');
+  const [category, setCategory] = useState<Category>(initialValues?.category ?? 'Food');
 
   const submit = () => {
     const trimmedAmount = amount.trim();
@@ -87,6 +88,12 @@ export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBa
 
         <Text style={styles.pageTitle}>Add Expense</Text>
         <Text style={styles.subtext}>Record your spending easily.</Text>
+        
+        {initialValues && (
+        <Text style={[styles.subtext, { color: BLUE }]}>
+          Data scanned from receipt. Check before saving data.
+        </Text>
+        )}
 
         <View style={[styles.card, { marginTop: 24 }]}>
           <Text style={styles.fieldLabel}>Amount (CAD)</Text>

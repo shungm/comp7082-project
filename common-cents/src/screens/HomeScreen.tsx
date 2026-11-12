@@ -1,27 +1,30 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Alert, Image, ActivityIndicator} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Expense, Screen } from '../types/expense';
 import { BudgetCard } from '../components/BudgetCard';
 import { ExpenseRow } from '../components/ExpenseRow';
 import { BLUE, DARK, GRAY } from '../constants/theme';
 import { useReceiptScanner } from '../components/useReceiptScanner';
+import { ParsedReceipt } from '../components/receiptParser';
 
 interface HomeScreenProps {
   expenses: Expense[];
   onNavigate: (s: Screen) => void;
   budget: number;
   onSaveBudget: (value: number) => void;
+  onReceiptScanned: (data: ParsedReceipt) => void;  // Callback for when a receipt is scanned
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ 
   expenses,
   onNavigate,
   budget,
-  onSaveBudget }) => {
+  onSaveBudget,
+  onReceiptScanned }) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Personal');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const { receiptUri, scanReceipt, clearReceipt } = useReceiptScanner();  // Call useReceiptScanner hook
+  const { scanReceipt, isScanning} = useReceiptScanner(onReceiptScanned);  // Call useReceiptScanner hook
 
 
   return (
@@ -93,27 +96,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             expenses.slice(0, 5).map((e) => <ExpenseRow key={e.id} expense={e} />)
           )}
 
-        {receiptUri && (
-          <View style={[styles.card, { marginTop: 16 }]}>
-            <Text style={styles.sectionTitle}>Receipt Captured</Text>
-            <Image
-              source={{ uri: receiptUri }}
-              style={{ width: '100%', height: 220, borderRadius: 12, marginTop: 12 }}
-              resizeMode="cover"
-            />
-            <View style={[styles.actionRow, { marginTop: 12 }]}>
-              <Pressable style={styles.scanButton} onPress={clearReceipt}>
-                <Text style={styles.scanText}>Remove</Text>
-              </Pressable>
-              <Pressable style={styles.addButton} onPress={() => onNavigate('add')}>
-                <Text style={styles.addText}>Add Expense</Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
-
           <View style={styles.actionRow}>
-            <Pressable style={styles.scanButton} onPress={scanReceipt}>
+            <Pressable style={styles.scanButton} onPress={scanReceipt} disabled={isScanning}>
               <Feather name="camera" size={17} color="#FFFFFF" />
               <Text style={styles.scanText}>Scan Receipt</Text>
             </Pressable>

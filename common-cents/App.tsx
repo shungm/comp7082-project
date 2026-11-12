@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -10,10 +10,22 @@ import { AddExpenseScreen } from './src/screens/AddExpenseScreen';
 import { DetailsScreen } from './src/screens/DetailsScreen';
 import { MONTHLY_BUDGET } from './src/constants/theme';
 
+import { ParsedReceipt } from './src/components/receiptParser';
+
 function MainApp() {
   const [screen, setScreen] = useState<Screen>('home');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [monthlyBudget, setMonthlyBudget] = useState(MONTHLY_BUDGET);
+  const [receiptPrefill, setReceiptPrefill] = useState<ParsedReceipt | null>(null);
+
+  useEffect(() => {
+  if (screen !== 'add') setReceiptPrefill(null);
+  }, [screen]);
+
+  const handleReceiptScanned = (data: ParsedReceipt) => {
+    setReceiptPrefill(data);
+    setScreen('add');
+  };
 
   const saveExpense = (data: Omit<Expense, 'id' | 'date'>) => {
     setExpenses((previous) => [
@@ -41,13 +53,23 @@ function MainApp() {
           onNavigate={setScreen} 
           budget={monthlyBudget}
           onSaveBudget={setMonthlyBudget}
+          onReceiptScanned={handleReceiptScanned}  // Pass the callback to HomeScreen
           />
       )}
 
       {screen === 'add' && (
         <AddExpenseScreen
-          onSave={saveExpense}
-          onBack={() => setScreen('home')}
+          initialValues={receiptPrefill}  // Pass the scanned receipt data to AddExpenseScreen
+          onSave={(e) => {
+            saveExpense(e);
+            setReceiptPrefill(null);
+          }}
+          onBack={() => 
+          {
+            setScreen('home');
+            setReceiptPrefill(null);  // Clear the prefill data when going back
+          }}
+
         />
       )}
 
