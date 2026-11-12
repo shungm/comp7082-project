@@ -5,7 +5,8 @@ import { Expense, Category, Group } from '../types/expense';
 import { BLUE, DARK, GRAY } from '../constants/theme';
 
 interface AddExpenseScreenProps {
-  onSave: (data: Omit<Expense, 'id' | 'date' | 'paid_by'>) => void;
+  // Fix: added group_id so it matches what we pass inside handleSave
+  onSave: (data: Omit<Expense, 'id' | 'date' | 'paid_by' | 'owner_username'>) => void;
   onBack: () => void;
   userGroups: Group[];
 }
@@ -116,7 +117,7 @@ export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ onSave, onBa
           <View style={styles.splitNotice}>
             <Feather name="info" size={16} color={BLUE} />
             <Text style={styles.splitText}>
-              This will be split equally among group members in the next step.
+              This will be tracked under the selected group.
             </Text>
           </View>
         )}
@@ -159,5 +160,4 @@ const styles = StyleSheet.create({
   saveButton: { backgroundColor: BLUE, borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
   saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });
-
 
