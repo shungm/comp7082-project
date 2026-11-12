@@ -14,6 +14,8 @@ export const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onDelete }) => 
     Food: 'coffee',
     Groceries: 'shopping-cart',
     Transport: 'truck',
+    Entertainment: 'film',
+    Utilities: 'zap',
     Other: 'credit-card',
   };
 
@@ -23,10 +25,10 @@ export const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onDelete }) => 
       'Are you sure you want to delete this expense?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive', 
-          onPress: () => onDelete?.(expense.id) 
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDelete?.(expense.id),
         },
       ]
     );
@@ -37,12 +39,12 @@ export const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, onDelete }) => 
       <View style={styles.expenseIcon}>
         <Feather name={icons[expense.category]} size={21} color={BLUE} />
       </View>
-      
+
       <View style={{ flex: 1 }}>
         <Text style={styles.expenseName}>{expense.title}</Text>
         <Text style={styles.subtext}>{expense.date}</Text>
       </View>
-      
+
       <View style={styles.rightAction}>
         <Text style={styles.expenseAmount}>{currency(expense.amount)}</Text>
         {onDelete && (

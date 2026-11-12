@@ -1,5 +1,20 @@
-export type Category = 'Food' | 'Groceries' | 'Transport' | 'Other';
-export type Screen = 'home' | 'add' | 'expenses' | 'budget' | 'groups';
+export type Screen =
+  | 'home'
+  | 'add'
+  | 'expenses'
+  | 'budget'
+  | 'groups';
+
+export const CATEGORIES = [
+  'Food',
+  'Groceries',
+  'Transport',
+  'Entertainment',
+  'Utilities',
+  'Other',
+] as const;
+
+export type Category = typeof CATEGORIES[number];
 
 export interface Expense {
   id: string;
@@ -7,7 +22,7 @@ export interface Expense {
   amount: number;
   category: Category;
   date: string;
-  paid_by: string;      // Who paid for it
+  paid_by: string;        // Who paid for it
   owner_username: string; // Whose personal dashboard/record this belongs to
   group_id: string | null;
 }
@@ -22,4 +37,3 @@ export interface Group {
   name: string;
   members: GroupMember[];
 }
-

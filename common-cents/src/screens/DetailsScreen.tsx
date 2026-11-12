@@ -1,6 +1,13 @@
-import React from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { Expense } from '../types/expense';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
+import { CATEGORIES, type Expense } from '../types/expense';
 import { BudgetCard } from '../components/BudgetCard';
 import { ExpenseRow } from '../components/ExpenseRow';
 import { BLUE, DARK, GRAY } from '../constants/theme';
@@ -14,15 +21,29 @@ interface DetailsScreenProps {
   onDeleteExpense: (id: string) => void;
 }
 
-export const DetailsScreen: React.FC<DetailsScreenProps> = ({ 
+export const DetailsScreen: React.FC<DetailsScreenProps> = ({
   screen,
   expenses,
   onAdd,
   budget,
   onSaveBudget,
-  onDeleteExpense
+  onDeleteExpense,
 }) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  const categories = ['All', ...CATEGORIES];
+
+  const filteredExpenses = expenses.filter((expense) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = expense.title.toLowerCase().includes(query);
+    const matchesCategory =
+      selectedCategory === 'All' || expense.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <ScrollView style={styles.content}>
@@ -45,8 +66,8 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
         <>
           {screen === 'budget' && (
             <View style={{ marginTop: 20 }}>
-              <BudgetCard 
-                total={total} 
+              <BudgetCard
+                total={total}
                 budget={budget}
                 onSaveBudget={onSaveBudget}
               />
@@ -60,11 +81,56 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
             </Pressable>
           </View>
 
-          {expenses.length === 0 ? (
-            <Text style={styles.emptyText}>No expenses yet.</Text>
+          {/* Search Input */}
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search expenses..."
+            placeholderTextColor="#9BA8BC"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
+
+          {/* Category Filter */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterContainer}
+          >
+            {categories.map((category) => (
+              <Pressable
+                key={category}
+                onPress={() => setSelectedCategory(category)}
+                style={[
+                  styles.filterButton,
+                  selectedCategory === category && styles.filterSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    selectedCategory === category && styles.filterTextSelected,
+                  ]}
+                >
+                  {category}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          {filteredExpenses.length === 0 ? (
+            <Text style={styles.emptyText}>
+              {expenses.length === 0
+                ? 'No expenses yet.'
+                : 'No matching expenses found.'}
+            </Text>
           ) : (
-            expenses.map((e) => (
-              <ExpenseRow key={e.id} expense={e} onDelete={onDeleteExpense} />
+            filteredExpenses.map((e) => (
+              <ExpenseRow
+                key={e.id}
+                expense={e}
+                onDelete={onDeleteExpense}
+              />
             ))
           )}
         </>
@@ -103,5 +169,37 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   link: { color: BLUE, fontSize: 15, fontWeight: '600' },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#DDE4EF',
+    backgroundColor: '#FAFBFE',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: DARK,
+    marginTop: 18,
+  },
+  filterContainer: {
+    marginTop: 14,
+    marginBottom: 16,
+    flexGrow: 0,
+  },
+  filterButton: {
+    backgroundColor: '#EEF2F8',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  filterSelected: {
+    backgroundColor: BLUE,
+  },
+  filterText: {
+    color: GRAY,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  filterTextSelected: {
+    color: '#FFFFFF',
+  },
 });
-
