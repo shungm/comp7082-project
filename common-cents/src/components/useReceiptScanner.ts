@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { parseReceiptText, ParsedReceipt } from './receiptParser';
 
-const OCR_API_KEY = ''; //API key here (process.env.EXPO_PUBLIC_OCR_SPACE_API_KEY) or key directly
+const OCR_API_KEY = 'K8464431973022788957'; //API key here (process.env.EXPO_PUBLIC_OCR_SPACE_API_KEY) or key directly
 const OCR_ENDPOINT = 'https://api.ocr.space/parse/image';
 
 const recognizeText = async (uri: string): Promise<string> => {

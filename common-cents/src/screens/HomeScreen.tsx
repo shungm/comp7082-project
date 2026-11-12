@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Expense, Screen } from '../types/expense';
@@ -123,14 +124,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           )}
 
           <View style={styles.actionRow}>
-            <Pressable
-              style={styles.scanButton}
-              onPress={scanReceipt}
-              disabled={isScanning}
-            >
-              <Feather name="camera" size={17} color={BLUE} />
-              <Text style={styles.scanText}>Scan Receipt</Text>
-            </Pressable>
+          <Pressable
+            style={[styles.scanButton, isScanning && { opacity: 0.6 }]}
+            onPress={scanReceipt}
+            disabled={isScanning}
+          >
+            {isScanning ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Feather name="camera" size={17} color="#FFFFFF" />
+                <Text style={styles.scanText}>Scan Receipt</Text>
+              </>
+            )}
+          </Pressable>
 
             <Pressable
               style={styles.addButton}
@@ -225,17 +232,17 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  scanButton: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E8F0FF',
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  scanText: { color: BLUE, fontSize: 13, fontWeight: '700' },
+    scanButton: {
+      flex: 1,
+      flexDirection: 'row',
+      gap: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: BLUE, 
+      paddingVertical: 16,
+      borderRadius: 12,
+      },
+  scanText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   addButton: {
     flex: 1,
     flexDirection: 'row',
