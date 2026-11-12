@@ -4,6 +4,7 @@ import {
   View, Text, TextInput, Pressable, StyleSheet, Alert,
 } from 'react-native';
 import { BLUE, DARK, GRAY, currency } from '../constants/theme';
+import svg, { Circle, Svg } from 'react-native-svg';
 
 interface BudgetCardProps {
   total: number;
@@ -19,9 +20,18 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
 
-  const percent = Math.round((total / budget) * 100);
+  const percent = budget > 0 
+  ? Math.round((total / budget) * 100) 
+  : 0;
+  
   const remaining = budget - total;
   const progress = Math.min(100, Math.max(0, percent));
+
+  // Circular progress calculation
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference 
+    - (1 - progress / 100) * circumference;
 
   const currentMonth = new Date().toLocaleDateString('en-CA', {
     month: 'long',
@@ -106,10 +116,41 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
       )}
 
       <View style={styles.budgetContent}>
+        
         <View style={styles.circle}>
-          <Text style={styles.percentText}>{percent}%</Text>
-          <Text style={styles.subtext}>Used</Text>
+          <Svg width={112} height={112} viewBox="0 0 112 112">
+            {/* Background circle */}
+            <Circle
+              cx={56}
+              cy={56}
+              r={radius}
+              stroke="#E6EDF9"
+              strokeWidth={12}
+              fill="none"
+            />
+
+            {/* Dynamic progress circle */}
+            <Circle
+              cx={56}
+              cy={56}
+              r={radius}
+              stroke={BLUE}
+              strokeWidth={12}
+              fill="none"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={strokeDashoffset}
+              rotation={-90}
+              originX={56}
+              originY={56}
+            />
+          </Svg>
+
+          <View style={styles.circleLabel}>
+            <Text style={styles.percentText}>{percent}%</Text>
+            <Text style={styles.subtext}>Used</Text>
+          </View>
         </View>
+
 
         <View style={{ flex: 1, marginLeft: 20 }}>
           <Text style={styles.totalText}>{currency(total)}</Text>
@@ -211,11 +252,15 @@ const styles = StyleSheet.create({
   circle: {
     width: 112,
     height: 112,
-    borderRadius: 56,
-    borderWidth: 12,
-    borderColor: '#E6EDF9',
-    borderTopColor: BLUE,
-    borderRightColor: BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleLabel: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
