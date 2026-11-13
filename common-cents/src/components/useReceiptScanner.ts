@@ -1,32 +1,31 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Alert, Linking } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { parseReceiptText, ParsedReceipt } from './receiptParser';
 
-const OCR_API_KEY = ''; //API key here (process.env.EXPO_PUBLIC_OCR_SPACE_API_KEY) or key directly
+// Add OCR.space API key to OCR_API_KEY = ''
+const OCR_API_KEY = '';
 const OCR_ENDPOINT = 'https://api.ocr.space/parse/image';
 
+// Photo sent to OCR.space to be parsed. Text string returned.
 const recognizeText = async (uri: string): Promise<string> => {
   if (!OCR_API_KEY) {
-    throw new Error('Missing OCR.space API key.');
+    throw new Error('Missing API key.');
   }
 
-  // Shrink the photo (free tier limit is 1 MB) and get it back as base64
+// Resize image so within OCR.space free size limit. 
   const resized = await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: 1200 } }],
-    {
-      compress: 0.6,
-      format: ImageManipulator.SaveFormat.JPEG,
-      base64: true,
-    },
+    { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true },
   );
-
+  
   if (!resized.base64) {
-    throw new Error('Could not prepare the photo for scanning.');
+    throw new Error('Photo could not be converted to base64');
   }
 
+  // Build form data for OCR.space API request
   const fields: Record<string, string> = {
     base64Image: `data:image/jpeg;base64,${resized.base64}`,
     language: 'eng',
@@ -35,10 +34,12 @@ const recognizeText = async (uri: string): Promise<string> => {
     isTable: 'true',
   };
 
+  // Convert fields to URL-encoded string for fetch request
   const body = Object.entries(fields)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join('&');
 
+  // Send request to OCR.space API
   const response = await fetch(OCR_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -47,39 +48,35 @@ const recognizeText = async (uri: string): Promise<string> => {
     },
     body,
   });
-
+  
   if (!response.ok) {
-    throw new Error(`OCR service returned status ${response.status}.`);
+    throw new Error(`OCR status ${response.status}.`);
   }
 
   const data = await response.json();
 
   if (data.IsErroredOnProcessing) {
-    const message = Array.isArray(data.ErrorMessage)
-      ? data.ErrorMessage.join(' ')
-      : String(data.ErrorMessage ?? 'Unknown OCR error.');
-    throw new Error(message);
+    throw new Error(String(data.ErrorMessage ?? 'Unknown error.'));
   }
 
   return data.ParsedResults?.[0]?.ParsedText ?? '';
 };
 
-/**
- * Opens the camera, sends the photo to OCR.space, and hands the parsed
- * fields (merchant, total, category) to `onParsed`.
- */
+// scanReceipt called on button press. Opens camera, takes photo, sends to OCR.space, parses text, and returns parsed data.
 export const useReceiptScanner = (onParsed: (data: ParsedReceipt) => void) => {
   const [isScanning, setIsScanning] = useState(false);
 
-  const scanReceipt = useCallback(async () => {
+  const scanReceipt = async () => {
     try {
+      // Request camera use from device
       const { status, canAskAgain } =
         await ImagePicker.requestCameraPermissionsAsync();
 
+      // If permission denied, show alert and return
       if (status !== 'granted') {
         Alert.alert(
-          'Camera Permission Needed',
-          'CommonCents needs camera access to scan your receipts.',
+          'Camera Permission Denied',
+          'Application needs camera to scan receipt.',
           canAskAgain
             ? [{ text: 'OK' }]
             : [
@@ -90,34 +87,40 @@ export const useReceiptScanner = (onParsed: (data: ParsedReceipt) => void) => {
         return;
       }
 
+      // Opens camera and takes photo. Returns URI of photo.
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true, // lets the user crop to the receipt
+        allowsEditing: true,
         quality: 0.8,
       });
 
       if (result.canceled || result.assets.length === 0) return;
 
+      // Scan text from photo
       setIsScanning(true);
       const text = await recognizeText(result.assets[0].uri);
+
+      // Extract the merchant name, total, items, etc. from scanned text
       const parsed = parseReceiptText(text);
 
+      // If no title or amount found, show alert and return
       if (!parsed.amount && !parsed.title) {
         Alert.alert(
           'Could Not Read Receipt',
-          'Try again with better lighting and the receipt flat, or enter the expense manually.',
+          'Try taking photo again',
         );
         return;
       }
-
+      
       onParsed(parsed);
     } catch (error) {
       console.error('Receipt scan error:', error);
       Alert.alert('Scan Failed', error instanceof Error ? error.message : String(error));
     } finally {
+      // Re-enables scan button
       setIsScanning(false);
     }
-  }, [onParsed]);
+  };
 
   return { scanReceipt, isScanning };
 };
