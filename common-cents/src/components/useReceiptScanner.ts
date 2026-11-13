@@ -5,7 +5,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { parseReceiptText, ParsedReceipt } from './receiptParser';
 
 // Add OCR.space API key to OCR_API_KEY = ''
-const OCR_API_KEY = '';
+const OCR_API_KEY = 'K8464431973022788957';
 const OCR_ENDPOINT = 'https://api.ocr.space/parse/image';
 
 // Photo sent to OCR.space to be parsed. Text string returned.
