@@ -3,7 +3,7 @@ import { Category } from '../types/expense';
 export interface ParsedReceipt {
   // Merchant/Store name
   title: string;
-  amount: string; // Amount e.g. "23.45"
+  amount: string; // Amount ex: "23.45"
   category: Category; // Category of expense
 }
 
@@ -32,32 +32,42 @@ const isAllDigits = (text: string): boolean => {
 // Count the number of letters in a string
 const countLetters = (text: string): number => {
   let count = 0;
-  for (const ch of text) {
-    if (isLetter(ch)) {
+  
+  for(const ch of text){
+    if(isLetter(ch)){
       count++;
     }
   }
+  
   return count;
 };
  
 // Count the number of digits in a string
 const countDigits = (text: string): number => {
   let count = 0;
-  for (const ch of text) {
-    if (isDigit(ch)) {
+  
+  for(const ch of text){
+    if (isDigit(ch)){
       count++;
     }
   }
+  
   return count;
 };
  
 // Sets text to lowercase, turns every symbol into a space, and returns the words.
-// e.g. "Save-On Foods #12" changed to array ["save", "on", "foods", "12"]
+// ex: "Save-On Foods #12" changed to array ["save", "on", "foods", "12"]
 const toWords = (text: string): string[] => {
   let cleaned = '';
-  for (const ch of text.toLowerCase()) {
-    cleaned += isLetter(ch) || isDigit(ch) ? ch : ' ';
+  
+  for(const ch of text.toLowerCase()){
+    if(isLetter(ch) || isDigit(ch)){
+      cleaned += ch;
+    }else{
+      cleaned += ' ';
+    }
   }
+  
   return cleaned.split(' ').filter((w) => w !== '');
 };
  
@@ -65,16 +75,29 @@ const toWords = (text: string): string[] => {
 const containsPhrase = (text: string, phrase: string): boolean => {
   const paddedText = ' ' + toWords(text).join(' ') + ' ';
   const paddedPhrase = ' ' + toWords(phrase).join(' ') + ' ';
+  
   return paddedText.includes(paddedPhrase);
 };
  
 // Convert a string to title case, ignoring symbols
-const toTitleCase = (text: string): string =>
-  text
-    .split(' ')
-    .filter((w) => w !== '')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ');
+const toTitleCase = (text: string): string => {
+  const words = text.split(' ');
+  let result = '';
+  
+  for(const w of words){
+    if(w === ''){
+      continue; // Skip empty pieces
+    }
+    
+    const titled = w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    
+    if(result !== ''){
+      result += ' ';
+    }
+    result += titled;
+  }
+  return result;
+};
  
 // Parse and find amounts
 export const parseAmount = (word: string): number | null => {
@@ -82,30 +105,30 @@ export const parseAmount = (word: string): number | null => {
   let isNegative = false;
  
   // (5.00) means negative
-  if (text.startsWith('(') && text.endsWith(')')) {
+  if(text.startsWith('(') && text.endsWith(')')){
     isNegative = true;
     text = text.slice(1, -1);
   }
  
   // -5.00 means negative
-  if (text.startsWith('-')) {
+  if(text.startsWith('-')){
     isNegative = true;
     text = text.slice(1);
   }
  
   // 5.00- means negative (common on thermal receipts)
-  if (text.endsWith('-')) {
+  if(text.endsWith('-')){
     isNegative = true;
     text = text.slice(0, -1);
   }
  
   // Remove the dollar sign
-  if (text.startsWith('$')) {
+  if(text.startsWith('$')) {
     text = text.slice(1);
   }
  
   // Handles "$-5.00"
-  if (text.startsWith('-')) {
+  if(text.startsWith('-')) {
     isNegative = true;
     text = text.slice(1);
   }
@@ -115,7 +138,7 @@ export const parseAmount = (word: string): number | null => {
  
   // A price must look like "digits.cents": one dot, exactly two digits after it
   const parts = text.split('.');
-  if (parts.length !== 2) {
+  if(parts.length !== 2) {
     return null;
   }
  
@@ -123,24 +146,29 @@ export const parseAmount = (word: string): number | null => {
   const cents = parts[1];
  
   // Reject if the whole part is empty or too long, or if the cents part is not exactly two digits
-  if (whole.length === 0 || whole.length > 6) {
+  if(whole.length === 0 || whole.length > 6){
     return null;
   }
   // Reject if the cents part is not exactly two digits
-  if (cents.length !== 2) {
+  if(cents.length !== 2){
     return null;
   }
   // Reject if either part contains non-digit characters
-  if (!isAllDigits(whole) || !isAllDigits(cents)) {
+  if(!isAllDigits(whole) || !isAllDigits(cents)){
     return null;
   }
 
-  const value = Number(text);
-  return isNegative ? -value : value;
+ const value = Number(text);
+  
+ if(isNegative){
+    return -value;
+  }
+  
+  return value;
 };
 
 // Split lines into words so that $ signs are treated to be separate words, and tabs are treated as spaces
-// e.g. "TOTAL$23.45" becomes "TOTAL $23.45".
+// ex: "TOTAL$23.45" becomes "TOTAL $23.45".
 const splitIntoWords = (line: string): string[] => {
   const spaced = line.split('$').join(' $').split('\t').join(' ');
   return spaced.split(' ').filter((w) => w !== '');
@@ -149,7 +177,7 @@ const splitIntoWords = (line: string): string[] => {
 // Finds every price in one line
 const amountsIn = (line: string): number[] => {
   const amounts: number[] = [];
-  for (const word of splitIntoWords(line)) {
+  for(const word of splitIntoWords(line)){
     const amount = parseAmount(word);
     if (amount !== null) {
       amounts.push(amount);
@@ -162,7 +190,7 @@ const amountsIn = (line: string): number[] => {
 //Find total amount in receipt text
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.011;
  
-// Detect typos in TOTAL (e.g. "T0TAL" or "TOTAl" or "TOTL" or "TOTALL")
+// Detect typos in TOTAL (ex: "T0TAL" or "TOTAl" or "TOTL" or "TOTALL")
 const editDistance = (a: string, b: string): number => {
   // table[i][j] = distance between first i letters of a and first j letters of b
   const table: number[][] = [];
@@ -172,24 +200,21 @@ const editDistance = (a: string, b: string): number => {
     table.push([]);
     // Fill in the first row and first column
     for (let j = 0; j <= b.length; j++) {
-      // Fill in the base cases for the first row and first column
       if (i === 0) {
         table[i].push(j);
       } 
-      // Fill in the base cases for the first row and first column
       else if (j === 0) {
         table[i].push(i);
       } 
       // Fill in the rest of the table using the recurrence relation
       else {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        table[i].push(
-          Math.min(
-            table[i - 1][j] + 1,        // remove a letter
-            table[i][j - 1] + 1,        // add a letter
-            table[i - 1][j - 1] + cost, // change a letter
-          ),
-        );
+        let cost = 1;
+        
+        if(a[i - 1] === b[j - 1]){
+          cost = 0;
+        }
+    
+        table[i].push(Math.min(table[i - 1][j] + 1, table[i][j - 1] + 1, table[i - 1][j - 1] + cost,),);
       }
     }
   }
@@ -243,25 +268,31 @@ const hasPaymentWord = (line: string): boolean => {
 };
  
 // Check if number above line adds up to target number to make sure the total is correct
-// e.g. subtotal + tax = total, or subtotal - discount + tax = total
+// ex: subtotal + tax = total, or subtotal - discount + tax = total
 const isExplained = (target: number, firstLine: number, all: Amount[]): boolean => {
-  const above = all
-    .filter((a) => a.line < firstLine)
-    .slice(-25)
-    .map((a) => a.value);
+  // Collect all amount that appears above the first line of total
+  const above: number[] = [];
+  
+  for(const a of all){
+    if(a.line < firstLine){
+      above.push(a.value);
+    }
+  }
+  
+  const recent = above.slice(-25); // keep only last 25
  
     // Check all combinations of 1, 2, or 3 amounts above the total to see if they add up to the total
-  for (let i = 0; i < above.length; i++) {
+  for (let i = 0; i < recent.length; i++) {
     // Check combinations of 1 amount above the total
-    for (let j = i + 1; j < above.length; j++) {
+    for (let j = i + 1; j < recent.length; j++) {
       // Check combinations of 2 amounts above the total
-      if (near(above[i] + above[j], target)) {
+      if (near(recent[i] + recent[j], target)) {
         return true;
       }
       // Check combinations of 3 amounts above the total
-      for (let k = j + 1; k < above.length; k++) {
+      for (let k = j + 1; k < recent.length; k++) {
         // Check combinations of 3 amounts above the total
-        if (near(above[i] + above[j] + above[k], target)) {
+        if (near(recent[i] + recente[j] + recent[k], target)) {
           return true;
         }
       }
@@ -345,7 +376,11 @@ export const findTotal = (lines: string[]): number | null => {
     }
   }
  
-  return best ? best.value : null;
+  if(best){
+    return best.value;
+  }
+  
+  return null;
 };
  
 // Determine merchant/store name
@@ -435,11 +470,11 @@ const merchantFromWebsite = (lines: string[]): string => {
       }
 
       let name = word.slice(0, dotCom);
-      // If the name contains "//", take the part after it (e.g. "https://www.joescafe.com" -> "joescafe")
+      // If the name contains "//", take the part after it (ex: "https://www.starbucks.com" -> "starbucks")
       if (name.includes('//')) {
         name = name.split('//')[1];
       }
-      // If the name starts with "www.", remove it (e.g. "www.joescafe" -> "joescafe")
+      // If the name starts with "www.", remove it (ex: "www.starbucks" -> "starbucks")
       if (name.startsWith('www.')) {
         name = name.slice(4);
       }
@@ -457,13 +492,13 @@ const cleanMerchantName = (name: string): string => {
   let cleaned = name;
  
   const hashIndex = cleaned.indexOf('#');
-  // If there is a "#" in the name, remove it and everything after it (e.g. "Save-On Foods #12" -> "Save-On Foods")
+  // If there is a "#" in the name, remove it and everything after it (ex "Save-On Foods #12" -> "Save-On Foods")
   if (hashIndex !== -1) {
     cleaned = cleaned.slice(0, hashIndex);
   }
   cleaned = cleaned.trim();
  
-  // Only fix names that are ALL CAPS. Mixed case ("Tim Hortons") is left alone.
+  // Change all capital names to title case (ex: "STARBUCKS" -> "Starbucks")
   if (cleaned === cleaned.toUpperCase()) {
     cleaned = toTitleCase(cleaned);
   }
@@ -517,8 +552,7 @@ const CATEGORY_KEYWORDS: { category: Category; words: string[] }[] = [
   },
 ];
  
-// Guess the category from the first 10 lines.
-// Default to "Other" if no keywords are found.
+// Guess the category from the first 10 lines. Defaults to "Other" category is none found
 const guessCategory = (
   lines: string[],
   merchant: string,
@@ -559,10 +593,12 @@ export const parseReceiptText = (
  
   const total = findTotal(lines);
   const title = findMerchant(lines);
- 
-  return {
-    title,
-    amount: total !== null ? total.toFixed(2) : '',
-    category: guessCategory(lines, title, savedCategories),
+
+  let amount = '';
+  if(total !== null){
+    amount = total.toFixed(2);
+  }
+
+  return {title,amount,category: guessCategory(lines, title, savedCategories),
   };
 };
