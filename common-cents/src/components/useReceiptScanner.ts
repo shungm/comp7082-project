@@ -10,24 +10,26 @@ const OCR_ENDPOINT = 'https://api.ocr.space/parse/image';
 
 // Photo sent to OCR.space to be parsed. Text string returned.
 const recognizeText = async (uri: string): Promise<string> => {
-  if (!OCR_API_KEY) {
+  if(!OCR_API_KEY){
     throw new Error('Missing API key.');
   }
 
 // Resize image so within OCR.space free size limit. 
   const resized = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 1200 } }],
-    { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    uri,[{ resize: { width: 1200 } }], { 
+       compress: 0.6,
+       format: ImageManipulator.SaveFormat.JPEG, 
+       base64: true 
+    },
   );
   
-  if (!resized.base64) {
+  if(!resized.base64){
     throw new Error('Photo could not be converted to base64');
   }
 
   // Build form data for OCR.space API request
   const fields: Record<string, string> = {
-    base64Image: `data:image/jpeg;base64,${resized.base64}`,
+    base64Image: 'data:image/jpeg;base64,' + resized.base64,
     language: 'eng',
     OCREngine: '2',
     scale: 'true',
@@ -35,31 +37,47 @@ const recognizeText = async (uri: string): Promise<string> => {
   };
 
   // Convert fields to URL-encoded string for fetch request
-  const body = Object.entries(fields)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join('&');
+let requestBody = '';
+
+for(const key in fields){
+  const value = fields[key];
+
+  if(requestBody !== ''){
+    requestBody += '&';
+  }
+
+  requestBody += encodeURIComponent(key) + '=' + encodeURIComponent(value);
+}
 
   // Send request to OCR.space API
   const response = await fetch(OCR_ENDPOINT, {
     method: 'POST',
-    headers: {
-      apikey: OCR_API_KEY,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body,
+    headers: {apikey: OCR_API_KEY,
+              'Content-Type': 'application/x-www-form-urlencoded',
+              },
+    body: requestBody,
   });
   
-  if (!response.ok) {
+  if(!response.ok) {
     throw new Error(`OCR status ${response.status}.`);
   }
 
   const data = await response.json();
 
-  if (data.IsErroredOnProcessing) {
+  if(data.IsErroredOnProcessing) {
     throw new Error(String(data.ErrorMessage ?? 'Unknown error.'));
   }
 
-  return data.ParsedResults?.[0]?.ParsedText ?? '';
+  // Pull text out of the first result if exists
+  if(data.ParsedResults && data.ParsedResults.length > 0){
+    const receiptText = data.ParsedResults[0].ParsedText;
+
+    if(receiptText){
+      return receiptText;
+    }
+  }
+
+return '';
 };
 
 // scanReceipt called on button press. Opens camera, takes photo, sends to OCR.space, parses text, and returns parsed data.
@@ -68,22 +86,18 @@ export const useReceiptScanner = (onParsed: (data: ParsedReceipt) => void) => {
 
   const scanReceipt = async () => {
     try {
-      // Request camera use from device
-      const { status, canAskAgain } =
-        await ImagePicker.requestCameraPermissionsAsync();
-
-      // If permission denied, show alert and return
-      if (status !== 'granted') {
-        Alert.alert(
-          'Camera Permission Denied',
-          'Application needs camera to scan receipt.',
-          canAskAgain
-            ? [{ text: 'OK' }]
-            : [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Open Settings', onPress: () => Linking.openSettings() },
-              ],
-        );
+      // Start scanning
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      
+      // If permission denied, show alert and stop
+      if(permission.status !== 'granted'){
+        Alert.alert('Camera permission denied',
+                    'Enable camera permissions in settings to scan receipts',
+                    [
+                      {text: 'Cancel', style: 'cancel'}, 
+                      {text: 'Open settings', onPress: () => Linking.openSettings()},
+                    ],
+                  );
         return;
       }
 
@@ -104,20 +118,27 @@ export const useReceiptScanner = (onParsed: (data: ParsedReceipt) => void) => {
       const parsed = parseReceiptText(text);
 
       // If no title or amount found, show alert and return
-      if (!parsed.amount && !parsed.title) {
-        Alert.alert(
-          'Could Not Read Receipt',
-          'Try taking photo again',
-        );
+      if(!parsed.amount && !parsed.title){
+        Alert.alert('Could Not Read Receipt', 'Try taking photo again',);
+        
         return;
       }
       
       onParsed(parsed);
     } catch (error) {
+      // Handle error when something bad happens
       console.error('Receipt scan error:', error);
-      Alert.alert('Scan Failed', error instanceof Error ? error.message : String(error));
+
+      let errorMessage = 'Something went wrong.';
+
+      if(error instanceof Error){
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Scan failed', errorMessage);
+      
     } finally {
-      // Re-enables scan button
+      // Re-enables scan button by stopping scan whether succeed or fail
       setIsScanning(false);
     }
   };
