@@ -7,7 +7,7 @@ export interface ParsedReceipt {
   category: Category; // Category of expense
 }
 
-// Amount of food on receipt and the lines that contain it
+// Price found on ceipt and line number it on
 interface Amount {
   value: number;
   line: number;
@@ -145,7 +145,7 @@ export const parseAmount = (word: string): number | null => {
   const whole = parts[0];
   const cents = parts[1];
  
-  // Reject if the whole part is empty or too long, or if the cents part is not exactly two digits
+  // Reject if the whole part is empty or too long
   if(whole.length === 0 || whole.length > 6){
     return null;
   }
@@ -170,7 +170,8 @@ export const parseAmount = (word: string): number | null => {
 // Split lines into words so that $ signs are treated to be separate words, and tabs are treated as spaces
 // ex: "TOTAL$23.45" becomes "TOTAL $23.45".
 const splitIntoWords = (line: string): string[] => {
-  const spaced = line.split('$').join(' $').split('\t').join(' ');
+  const fixedMinus = line.split('-$').join('$-'); // Changes -$5.00 to -5.00 for parsing purposes
+  const spaced = fixedMinus.split('$').join(' $').split('\t').join(' ');
   return spaced.split(' ').filter((w) => w !== '');
 };
  
@@ -187,10 +188,11 @@ const amountsIn = (line: string): number[] => {
 };
  
 
-//Find total amount in receipt text
+// Two amounts considered same if difference is less than a cent
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.011;
  
 // Detect typos in TOTAL (ex: "T0TAL" or "TOTAl" or "TOTL" or "TOTALL")
+// Levenshtein distance algo solution referenced from: https://stackoverflow.com/questions/22758770/word-distance-algorithm-for-ocr
 const editDistance = (a: string, b: string): number => {
   // table[i][j] = distance between first i letters of a and first j letters of b
   const table: number[][] = [];
@@ -272,27 +274,27 @@ const hasPaymentWord = (line: string): boolean => {
 const isExplained = (target: number, firstLine: number, all: Amount[]): boolean => {
   // Collect all amount that appears above the first line of total
   const above: number[] = [];
-  
+
+  // Take amounts that appear before total
   for(const a of all){
     if(a.line < firstLine){
       above.push(a.value);
     }
   }
   
-  const recent = above.slice(-25); // keep only last 25
+  const recent = above.slice(-25); // keep only last 25 amounts
  
-    // Check all combinations of 1, 2, or 3 amounts above the total to see if they add up to the total
+  // Checks pairs and triples
   for (let i = 0; i < recent.length; i++) {
-    // Check combinations of 1 amount above the total
     for (let j = i + 1; j < recent.length; j++) {
-      // Check combinations of 2 amounts above the total
+      // Check combinations of 2 amounts add up to the total
       if (near(recent[i] + recent[j], target)) {
         return true;
       }
-      // Check combinations of 3 amounts above the total
+      // Check combinations of 3 amounts add up the total
       for (let k = j + 1; k < recent.length; k++) {
         // Check combinations of 3 amounts above the total
-        if (near(recent[i] + recente[j] + recent[k], target)) {
+        if (near(recent[i] + recent[j] + recent[k], target)) {
           return true;
         }
       }
@@ -336,10 +338,20 @@ export const findTotal = (lines: string[]): number | null => {
  
   // Scoring system to determine which amount is most likely the total
   for (const value of uniqueValues) {
-    const hits = positives.filter((a) => near(a.value, value));
-    const firstLine = Math.min(...hits.map((h) => h.line));
-    const lastLine = Math.max(...hits.map((h) => h.line));
- 
+    // Find spots where value appears
+    const hits: Amount[] = [];
+
+    // Matching amount added to 'hits'. 'hits' cannot be empty
+    for(const a of positives){
+      if(near(a.value, value)){
+        hits.push(a);
+      }
+    }
+
+    // Depends on positive is in order = first hit easliest/ last hit is latest
+    const firstLine = hits[0].line;
+    const lastLine = hits[hits.length - 1].line;
+    
     let score = 0;
  
     // "Total" appears on the line (2 points)
@@ -347,7 +359,7 @@ export const findTotal = (lines: string[]): number | null => {
       score += 2;
     }
  
-    // Same amount appears multiple times (1 point for each extra appearance)
+    // Same amount appears multiple times (2 point for each extra appearance)
     if (hits.length >= 2) {
       score += 2;
     }
@@ -357,10 +369,10 @@ export const findTotal = (lines: string[]): number | null => {
       score += 3;
     }
  
-    // The total is near the bottom of the receipt (2 points)
+    // The total is near the bottom of the receipt (Up to 2 points)
     score += (lastLine / lines.length) * 2;
  
-    // Subtract point for lines that contain payment words like "cash" or "tender" (these are usually not the total)
+    // Subtract 3 points for lines that contain payment words like "cash" or "tender" (these are usually not the total)
     if (hits.every((h) => hasPaymentWord(lines[h.line]))) {
       score -= 3;
     }
@@ -552,7 +564,7 @@ const CATEGORY_KEYWORDS: { category: Category; words: string[] }[] = [
   },
 ];
  
-// Guess the category from the first 10 lines. Defaults to "Other" category is none found
+// Guess the category from the first 10 lines. Defaults to "Other" category if none found
 const guessCategory = (
   lines: string[],
   merchant: string,
