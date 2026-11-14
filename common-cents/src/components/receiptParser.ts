@@ -52,7 +52,7 @@ const countDigits = (text: string): number => {
 };
  
 // Sets text to lowercase, turns every symbol into a space, and returns the words.
-// e.g. "Save-On Foods #12" -> ["save", "on", "foods", "12"]
+// e.g. "Save-On Foods #12" changed to array ["save", "on", "foods", "12"]
 const toWords = (text: string): string[] => {
   let cleaned = '';
   for (const ch of text.toLowerCase()) {
