@@ -16,18 +16,18 @@ Budgeting application for COMP7082 course
 
 ## Usage Instructions
 
-Commands to start application:
+**Commands to start application:**
 ```bash
 npx expo start -c
 ```
-OR
+**OR**
 
 (Use this to get application to work via BCIT school network)
 ```bash
 npx expo start -c --tunnel
 ```
 
-For OCR testing:
+**For OCR testing:**
 1. Sign up for free API Key via link: https://ocr.space/ocrapi/freekey
 2. Insert API key to userReceiptScanner.ts (ie: OCR_API_KEY ='')
 
@@ -36,10 +36,10 @@ For OCR testing:
 
 Technologies Used:
 
-- Frontend: \[ex: React, Typescript\]
-- Backend: \[ex: OCR.space REST API\]
-- Database: \[ex: SQLITE\]
-- Tools: \[ex: Git, GitHub, VS Code\]
+- **Frontend:** React, Typescript
+- **Backend:** OCR.space REST API
+- **Database:** SQLITE
+- **Tools:** Git, GitHub, VS Code
 
 
 ## Team Authors
