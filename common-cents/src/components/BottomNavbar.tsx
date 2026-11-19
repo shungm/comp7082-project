@@ -18,7 +18,7 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ currentScreen, onNav
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'expenses', label: 'Expenses', icon: 'list' },
     { id: 'add', label: 'Add', icon: 'plus' },
-    { id: 'budget', label: 'Budget', icon: 'bar-chart-2' },
+    { id: 'budget', label: 'Personal', icon: 'bar-chart-2' },
     { id: 'groups', label: 'Groups', icon: 'users' },
   ];
 

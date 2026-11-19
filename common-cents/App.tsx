@@ -17,6 +17,7 @@ import {
   initDatabase,
   getExpensesForUser,
   addExpenseToDB,
+  addGroupExpenseWithSplits,
   deleteExpenseFromDB,
   getUserGroups,
 } from './src/db/database';
@@ -29,7 +30,9 @@ function MainApp() {
 
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
-  const [receiptPrefill, setReceiptPrefill] = useState<ParsedReceipt | null>(null);
+  const [receiptPrefill, setReceiptPrefill] = useState<ParsedReceipt | null>(
+    null
+  );
 
   // Initialize DB and load user-specific expenses and groups when user logs in
   useEffect(() => {
@@ -69,7 +72,8 @@ function MainApp() {
   };
 
   const saveExpense = (
-    data: Omit<Expense, 'id' | 'date' | 'paid_by' | 'owner_username'>
+    data: Omit<Expense, 'id' | 'date' | 'owner_username'>,
+    splits?: { username: string; owed_amount: number }[]
   ) => {
     if (!currentUser) return;
 
@@ -81,15 +85,21 @@ function MainApp() {
         day: 'numeric',
         year: 'numeric',
       }),
-      paid_by: currentUser,
-      owner_username: currentUser, // Assign ownership to current user for personal data isolation
+      owner_username: currentUser,
     };
 
     try {
-      addExpenseToDB(newExpense);
-      refreshData();
-      setReceiptPrefill(null);
-      setScreen('home');
+      if (newExpense.group_id && splits) {
+        addGroupExpenseWithSplits(newExpense, splits);
+        refreshData();
+        setReceiptPrefill(null);
+        setScreen('groups');
+      } else {
+        addExpenseToDB(newExpense);
+        refreshData();
+        setReceiptPrefill(null);
+        setScreen('home');
+      }
     } catch (error) {
       console.error('Failed to save expense:', error);
     }
@@ -141,6 +151,8 @@ function MainApp() {
       {screen === 'home' && (
         <HomeScreen
           expenses={expenses}
+          currentUser={currentUser}
+          userGroups={userGroups}
           onNavigate={setScreen}
           budget={monthlyBudget}
           onSaveBudget={setMonthlyBudget}
@@ -153,6 +165,7 @@ function MainApp() {
       {screen === 'add' && (
         <AddExpenseScreen
           initialValues={receiptPrefill}
+          currentUser={currentUser}
           onSave={saveExpense}
           onBack={() => {
             setScreen('home');
@@ -178,6 +191,7 @@ function MainApp() {
           currentUser={currentUser}
           userGroups={userGroups}
           onRefreshGroups={refreshData}
+          onAddExpense={() => setScreen('add')}
         />
       )}
 
@@ -200,4 +214,3 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 });
-

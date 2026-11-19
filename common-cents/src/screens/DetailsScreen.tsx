@@ -13,7 +13,7 @@ import { ExpenseRow } from '../components/ExpenseRow';
 import { BLUE, DARK, GRAY } from '../constants/theme';
 
 interface DetailsScreenProps {
-  screen: 'expenses' | 'budget' | 'groups';
+  screen: 'expenses' | 'budget';
   expenses: Expense[];
   onAdd: () => void;
   budget: number;
@@ -48,92 +48,73 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
   return (
     <ScrollView style={styles.content}>
       <Text style={styles.pageTitle}>
-        {screen === 'expenses'
-          ? 'Expenses'
-          : screen === 'budget'
-          ? 'Personal Budget'
-          : 'Groups'}
+        {screen === 'expenses' ? 'Expenses' : 'Personal Budget'}
       </Text>
 
-      {screen === 'groups' ? (
-        <View style={[styles.card, { marginTop: 20 }]}>
-          <Text style={styles.sectionTitle}>Shared Expenses</Text>
-          <Text style={[styles.subtext, { marginTop: 12 }]}>
-            Equal, Percentage and Custom splitting: planned for the next development step.
-          </Text>
-        </View>
-      ) : (
-        <>
-          {screen === 'budget' && (
-            <View style={{ marginTop: 20 }}>
-              <BudgetCard
-                total={total}
-                budget={budget}
-                onSaveBudget={onSaveBudget}
-              />
-            </View>
-          )}
-
-          <View style={[styles.between, { marginTop: 24 }]}>
-            <Text style={styles.sectionTitle}>All Expenses</Text>
-            <Pressable onPress={onAdd}>
-              <Text style={styles.link}>+ Add</Text>
-            </Pressable>
-          </View>
-
-          {/* Search Input */}
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search expenses..."
-            placeholderTextColor="#9BA8BC"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
+      {screen === 'budget' && (
+        <View style={{ marginTop: 20 }}>
+          <BudgetCard
+            total={total}
+            budget={budget}
+            onSaveBudget={onSaveBudget}
           />
+        </View>
+      )}
 
-          {/* Category Filter */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterContainer}
+      <View style={[styles.between, { marginTop: 24 }]}>
+        <Text style={styles.sectionTitle}>All Expenses</Text>
+        <Pressable onPress={onAdd}>
+          <Text style={styles.link}>+ Add</Text>
+        </Pressable>
+      </View>
+
+      {/* Search Input */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search expenses..."
+        placeholderTextColor="#9BA8BC"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        autoCapitalize="none"
+      />
+
+      {/* Category Filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterContainer}
+      >
+        {categories.map((category) => (
+          <Pressable
+            key={category}
+            onPress={() => setSelectedCategory(category)}
+            style={[
+              styles.filterButton,
+              selectedCategory === category && styles.filterSelected,
+            ]}
           >
-            {categories.map((category) => (
-              <Pressable
-                key={category}
-                onPress={() => setSelectedCategory(category)}
-                style={[
-                  styles.filterButton,
-                  selectedCategory === category && styles.filterSelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    selectedCategory === category && styles.filterTextSelected,
-                  ]}
-                >
-                  {category}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          {filteredExpenses.length === 0 ? (
-            <Text style={styles.emptyText}>
-              {expenses.length === 0
-                ? 'No expenses yet.'
-                : 'No matching expenses found.'}
+            <Text
+              style={[
+                styles.filterText,
+                selectedCategory === category && styles.filterTextSelected,
+              ]}
+            >
+              {category}
             </Text>
-          ) : (
-            filteredExpenses.map((e) => (
-              <ExpenseRow
-                key={e.id}
-                expense={e}
-                onDelete={onDeleteExpense}
-              />
-            ))
-          )}
-        </>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {filteredExpenses.length === 0 ? (
+        <Text style={styles.emptyText}>
+          {expenses.length === 0
+            ? 'No expenses yet.'
+            : 'No matching expenses found.'}
+        </Text>
+      ) : (
+        filteredExpenses.map((e) => (
+          <ExpenseRow key={e.id} expense={e} onDelete={onDeleteExpense} />
+        ))
       )}
     </ScrollView>
   );
@@ -142,20 +123,7 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
 const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 20 },
   pageTitle: { fontSize: 27, fontWeight: '800', color: DARK, marginTop: 27 },
-  card: {
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: '#E9EDF5',
-    shadowColor: '#152D55',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
   sectionTitle: { fontSize: 19, fontWeight: '800', color: DARK },
-  subtext: { color: GRAY, fontSize: 13, marginTop: 4 },
   between: {
     flexDirection: 'row',
     alignItems: 'center',
