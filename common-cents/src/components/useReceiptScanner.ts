@@ -3,9 +3,10 @@ import { Alert, Linking } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { parseReceiptText, ParsedReceipt } from './receiptParser';
+import { getSavedCategories } from '../db/database';
 
 // Add OCR.space API key to OCR_API_KEY = ''
-const OCR_API_KEY = '';
+const OCR_API_KEY = 'K8464431973022788957';
 const OCR_ENDPOINT = 'https://api.ocr.space/parse/image';
 
 // Photo sent to OCR.space to be parsed. Text string returned.
@@ -81,7 +82,7 @@ return '';
 };
 
 // scanReceipt called on button press. Opens camera, takes photo, sends to OCR.space, parses text, and returns parsed data.
-export const useReceiptScanner = (onParsed: (data: ParsedReceipt) => void) => {
+export const useReceiptScanner = (onParsed: (data: ParsedReceipt) => void, currentUser: string,) => {
   const [isScanning, setIsScanning] = useState(false);
 
   const scanReceipt = async () => {

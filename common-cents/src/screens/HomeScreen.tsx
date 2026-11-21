@@ -42,7 +42,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
   const [mode, setMode] = useState<'Personal' | 'Groups'>('Groups');
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const { scanReceipt, isScanning } = useReceiptScanner(onReceiptScanned);
+  const { scanReceipt, isScanning } = useReceiptScanner(onReceiptScanned, currentUser);
 
   // Calculate total owed to user and total user owes across all groups
   let totalOwedToUser = 0;

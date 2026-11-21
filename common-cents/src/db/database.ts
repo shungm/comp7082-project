@@ -6,6 +6,7 @@ import {
   GroupExpenseItem,
   GroupMember,
   DebtSummary,
+  Category,
 } from '../types/expense';
 
 // Open the database using v4 so new schema initializes cleanly
@@ -49,6 +50,13 @@ export const initDatabase = () => {
       username TEXT NOT NULL,
       owed_amount REAL NOT NULL,
       PRIMARY KEY (expense_id, username)
+    );
+
+      CREATE TABLE IF NOT EXISTS merchant_categories (
+      username TEXT NOT NULL,
+      merchant TEXT NOT NULL,
+      category TEXT NOT NULL,
+      PRIMARY KEY (username, merchant)
     );
   `);
 
@@ -152,6 +160,16 @@ export const createGroup = (name: string, creatorUsername: string): boolean => {
     return false;
   }
 };
+const ensureMerchantTable = () => {
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS merchant_categories (
+      username TEXT NOT NULL,
+      merchant TEXT NOT NULL,
+      category TEXT NOT NULL,
+      PRIMARY KEY (username, merchant)
+    );
+  `);
+};
 
 export const checkUserExists = (username: string): boolean => {
   const user: any = db.getFirstSync('SELECT id FROM users WHERE username = ?', [
@@ -237,6 +255,32 @@ export const getUserGroups = (username: string): Group[] => {
   }
 
   return groups;
+};
+// Merchant category for receipt scanner
+export const getSavedCategories = (
+  username: string): Record<string, Category> =>{
+    ensureMerchantTable();
+    const rows = db.getAllSync<{merchant: string; category: Category}>(
+      'SELECT merchant, category FROM merchant_categories WHERE username = ?', [username]);
+  
+      const map: Record<string, Category> = {};
+      
+      for (const r of rows){
+        map[r.merchant] = r.category;
+      }
+
+    return map;
+};
+
+export const saveMerchantCategory = (username: string, merchant: string, category: Category): void => {
+  const key = merchant.trim().toLowerCase();
+
+  if(!key){
+    return;
+  }
+
+  ensureMerchantTable();
+  db.runSync('INSERT OR REPLACE INTO merchant_categories (username, merchant, category) VALUES (?,?,?)', [username, key, category]);
 };
 
 // --- EXPENSES & SPLITS ---

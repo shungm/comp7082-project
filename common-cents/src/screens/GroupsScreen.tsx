@@ -9,6 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Group, GroupExpenseItem, DebtSummary, Category } from '../types/expense';
@@ -22,18 +23,24 @@ import {
   settleUpInGroup,
   deleteExpenseFromDB,
 } from '../db/database';
+import { ParsedReceipt } from '../components/receiptParser';
+import { useReceiptScanner } from '../components/useReceiptScanner';
+
+
 
 interface GroupsScreenProps {
   currentUser: string;
   userGroups: Group[];
   onRefreshGroups: () => void;
-  onAddExpense: () => void;
+  onAddExpense: (groupId: string) => void;
+  onReceiptScanned: (data: ParsedReceipt, groupId: string) => void;
 }
 
 export const GroupsScreen: React.FC<GroupsScreenProps> = ({
   currentUser,
   userGroups,
   onRefreshGroups,
+  onReceiptScanned,
   onAddExpense,
 }) => {
   const [showCreate, setShowCreate] = useState(false);
@@ -49,8 +56,10 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({
   const [settleTarget, setSettleTarget] = useState<DebtSummary | null>(null);
   const [settleAmount, setSettleAmount] = useState('');
 
-  const selectedGroup =
-    userGroups.find((g) => g.id === selectedGroupId) || null;
+ const {scanReceipt, isScanning} = useReceiptScanner((data) => {
+    if (selectedGroupId) onReceiptScanned(data, selectedGroupId);}, currentUser);
+
+  const selectedGroup = userGroups.find((g) => g.id === selectedGroupId) || null;
 
   const loadSelectedGroupExpenses = () => {
     if (selectedGroupId) {
@@ -372,9 +381,27 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({
           {/* Group Expenses List */}
           <View style={styles.expensesHeader}>
             <Text style={styles.sectionTitle}>Group Expenses</Text>
-            <Pressable onPress={onAddExpense}>
-              <Text style={styles.addLink}>+ Add Expense</Text>
-            </Pressable>
+
+            <View style={styles.expenseActions}>
+              <Pressable onPress={() => onAddExpense(selectedGroup.id)}>
+                <Text style={styles.addLink}>+ Add Expense</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.scanLink, isScanning && { opacity: 0.6 }]}
+                onPress={scanReceipt}
+                disabled={isScanning}
+              >
+                {isScanning ? (
+                  <ActivityIndicator size="small" color={BLUE} />
+                ) : (
+                  <>
+                    <Feather name="camera" size={14} color={BLUE} />
+                    <Text style={styles.addLink}>Scan Receipt</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
           </View>
 
           {groupExpenses.length === 0 ? (
@@ -765,10 +792,12 @@ const styles = StyleSheet.create({
   },
   expensesHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',   // was 'center'
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  expenseActions: { alignItems: 'flex-end', gap: 10 },
+  scanLink: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   sectionTitle: { fontSize: 19, fontWeight: '800', color: DARK },
   addLink: { color: BLUE, fontSize: 14, fontWeight: '700' },
   expenseCardRow: {

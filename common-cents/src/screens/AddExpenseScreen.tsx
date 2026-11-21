@@ -24,6 +24,7 @@ interface AddExpenseScreenProps {
   currentUser: string;
   userGroups: Group[];
   initialValues?: ParsedReceipt | null;
+  initialGroupId?: string | null;
 }
 
 export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({
@@ -32,13 +33,14 @@ export const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({
   currentUser,
   userGroups,
   initialValues,
+  initialGroupId,
 }) => {
   const [title, setTitle] = useState(initialValues?.title ?? '');
   const [amount, setAmount] = useState(initialValues?.amount ?? '');
   const [category, setCategory] = useState<Category>(
     initialValues?.category ?? 'Other'
   );
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(initialGroupId ?? null);
 
   // Splitwise group split states
   const [paidBy, setPaidBy] = useState<string>(currentUser);

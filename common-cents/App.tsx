@@ -20,6 +20,7 @@ import {
   addGroupExpenseWithSplits,
   deleteExpenseFromDB,
   getUserGroups,
+  saveMerchantCategory,
 } from './src/db/database';
 
 function MainApp() {
@@ -30,9 +31,8 @@ function MainApp() {
 
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [userGroups, setUserGroups] = useState<Group[]>([]);
-  const [receiptPrefill, setReceiptPrefill] = useState<ParsedReceipt | null>(
-    null
-  );
+  const [receiptPrefill, setReceiptPrefill] = useState<ParsedReceipt | null>(null);
+  const [preselectedGroupId, setPreselectedGroupId] = useState<string | null>(null);
 
   // Initialize DB and load user-specific expenses and groups when user logs in
   useEffect(() => {
@@ -54,6 +54,7 @@ function MainApp() {
   useEffect(() => {
     if (screen !== 'add') {
       setReceiptPrefill(null);
+      setPreselectedGroupId(null);
     }
   }, [screen]);
 
@@ -70,6 +71,17 @@ function MainApp() {
     setReceiptPrefill(data);
     setScreen('add');
   };
+
+  const handleAddGroupExpense = (groupId: string) => {
+  setPreselectedGroupId(groupId);
+  setScreen('add');
+};
+
+const handleGroupReceiptScanned = (data: ParsedReceipt, groupId: string) => {
+  setReceiptPrefill(data);
+  setPreselectedGroupId(groupId);
+  setScreen('add');
+};
 
   const saveExpense = (
     data: Omit<Expense, 'id' | 'date' | 'owner_username'>,
@@ -100,6 +112,13 @@ function MainApp() {
         setReceiptPrefill(null);
         setScreen('home');
       }
+
+      if(receiptPrefill){
+        saveMerchantCategory(currentUser, data.title, data.category);
+      }
+      refreshData();
+      setReceiptPrefill(null);
+      setScreen(newExpense.group_id && splits ? 'groups':'home');
     } catch (error) {
       console.error('Failed to save expense:', error);
     }
@@ -165,6 +184,7 @@ function MainApp() {
       {screen === 'add' && (
         <AddExpenseScreen
           initialValues={receiptPrefill}
+          initialGroupId={preselectedGroupId}
           currentUser={currentUser}
           onSave={saveExpense}
           onBack={() => {
@@ -191,7 +211,8 @@ function MainApp() {
           currentUser={currentUser}
           userGroups={userGroups}
           onRefreshGroups={refreshData}
-          onAddExpense={() => setScreen('add')}
+          onAddExpense={handleAddGroupExpense}
+          onReceiptScanned={handleGroupReceiptScanned}
         />
       )}
 
